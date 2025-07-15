@@ -14,6 +14,12 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+const getOrdinal = (n: number) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+
 export default function Home() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [isMounted, setIsMounted] = useState(false);
@@ -110,11 +116,23 @@ export default function Home() {
   }, [gameState]);
 
   const ranks = useMemo(() => {
-    const sortedScores = gameState.players.map(p => ({ key: p.key, score: totalScores[p.key] })).sort((a, b) => b.score - a.score);
+    const sortedScores = gameState.players
+      .map(p => ({ key: p.key, score: totalScores[p.key] }))
+      .sort((a, b) => b.score - a.score);
+    
     const playerRanks: { [key: string]: number } = {};
-    sortedScores.forEach((player, index) => {
-      playerRanks[player.key] = index + 1;
-    });
+    if (sortedScores.length === 0) return playerRanks;
+
+    let rank = 1;
+    playerRanks[sortedScores[0].key] = rank;
+
+    for (let i = 1; i < sortedScores.length; i++) {
+        // If score is different from the previous player, update the rank
+        if (sortedScores[i].score < sortedScores[i - 1].score) {
+            rank = i + 1;
+        }
+        playerRanks[sortedScores[i].key] = rank;
+    }
     return playerRanks;
   }, [totalScores, gameState.players]);
 
@@ -323,17 +341,26 @@ export default function Home() {
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">Rank</TableCell>
-                  {gameState.players.map((player, index) => (
-                    <TableCell 
-                        key={player.key} 
-                        className={cn(
-                            "text-center font-bold text-base text-accent p-1",
-                            "border-r"
-                        )}
-                    >
-                        {ranks[player.key]}
-                    </TableCell>
-                  ))}
+                  {gameState.players.map((player, index) => {
+                    const rank = ranks[player.key];
+                    const rankColorClass = 
+                      rank === 1 ? 'bg-green-100 dark:bg-green-900/50' :
+                      rank === 3 ? 'bg-yellow-100 dark:bg-yellow-900/50' :
+                      rank === 4 ? 'bg-red-100 dark:bg-red-900/50' :
+                      '';
+                    return (
+                      <TableCell 
+                          key={player.key} 
+                          className={cn(
+                              "text-center font-bold text-base p-1",
+                              "border-r",
+                              rankColorClass
+                          )}
+                      >
+                          {getOrdinal(rank)}
+                      </TableCell>
+                    )
+                  })}
                    <TableCell className="border-l"></TableCell>
                 </TableRow>
               </tfoot>
@@ -363,3 +390,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
