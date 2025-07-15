@@ -166,10 +166,10 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-start bg-background p-2 sm:p-4 md:p-8">
+    <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
       <Card className="w-full max-w-4xl shadow-2xl">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="font-headline text-2xl">Callbreak Companion</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
+          <CardTitle className="font-headline text-xl sm:text-2xl">Callbreak Companion</CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon"><MoreVertical /></Button>
@@ -198,23 +198,23 @@ export default function Home() {
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
-        <CardContent className="p-0 sm:p-6">
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[60px] sm:min-w-[80px] text-center font-bold sticky left-0 bg-card z-10">Round</TableHead>
+                  <TableHead className="min-w-[40px] text-center font-bold sticky left-0 bg-card z-10 p-1">Rnd</TableHead>
                   {gameState.players.map(player => (
-                    <TableHead key={player.key} className="min-w-[100px] sm:min-w-[120px] text-center font-bold truncate px-2">{player.name}</TableHead>
+                    <TableHead key={player.key} className="min-w-[70px] text-center font-bold truncate px-1">{player.name}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {gameState.rounds.map((round, roundIndex) => (
                   <TableRow key={roundIndex} className={`transition-all duration-300 ${roundColors[roundIndex]}`}>
-                    <TableCell className="text-center font-semibold text-lg sticky left-0 bg-inherit z-10">{roundIndex + 1}</TableCell>
+                    <TableCell className="text-center font-semibold text-base sticky left-0 bg-inherit z-10 p-1">{roundIndex + 1}</TableCell>
                     {gameState.players.map(player => (
-                      <TableCell key={player.key} className="text-center p-1">
+                      <TableCell key={player.key} className="text-center p-0">
                         <ScoreDialog
                           player={player}
                           roundIndex={roundIndex}
@@ -222,10 +222,10 @@ export default function Home() {
                           currentTricks={round.tricks[player.key]}
                           onSave={handleScoreChange}
                         >
-                          <div className="p-2 rounded-md hover:bg-primary/10 cursor-pointer transition-colors w-full h-full min-h-[50px] flex flex-col justify-center">
-                            <div className="text-lg font-bold">{round.scores[player.key]?.toFixed(1) || "-"}</div>
+                          <div className="p-1 rounded-md hover:bg-primary/10 cursor-pointer transition-colors w-full h-full min-h-[40px] flex flex-col justify-center">
+                            <div className="text-base font-bold">{round.scores[player.key]?.toFixed(1) || "-"}</div>
                             <div className="text-xs text-muted-foreground">
-                              {round.bids[player.key] !== null ? `${round.bids[player.key]} / ${round.tricks[player.key]}` : "Bid / Tricks"}
+                              {round.bids[player.key] !== null ? `${round.bids[player.key]}/${round.tricks[player.key]}` : "B/T"}
                             </div>
                           </div>
                         </ScoreDialog>
@@ -236,37 +236,37 @@ export default function Home() {
               </TableBody>
               <tfoot className="border-t-2 border-primary">
                 <TableRow>
-                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10">Total</TableCell>
+                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1">Total</TableCell>
                   {gameState.players.map(player => (
-                    <TableCell key={player.key} className="text-center font-bold text-xl text-primary">{totalScores[player.key].toFixed(1)}</TableCell>
+                    <TableCell key={player.key} className="text-center font-bold text-lg text-primary p-1">{totalScores[player.key].toFixed(1)}</TableCell>
                   ))}
                 </TableRow>
                 <TableRow>
-                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10">Rank</TableCell>
+                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1">Rank</TableCell>
                   {gameState.players.map(player => (
-                    <TableCell key={player.key} className="text-center font-bold text-xl text-accent">{ranks[player.key]}</TableCell>
+                    <TableCell key={player.key} className="text-center font-bold text-lg text-accent p-1">{ranks[player.key]}</TableCell>
                   ))}
                 </TableRow>
               </tfoot>
             </Table>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row gap-4 justify-between items-center p-4 bg-muted/50">
-          <div className="flex flex-wrap justify-center sm:justify-start gap-4 items-center">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Zap className="h-5 w-5 text-orange-500" />
-              Kitna Piche: <span className="font-bold text-lg">{kitnaPiche}</span>
+        <CardFooter className="flex flex-col sm:flex-row gap-2 justify-between items-center p-2 bg-muted/50">
+          <div className="flex flex-wrap justify-center sm:justify-start gap-2 items-center">
+            <div className="flex items-center gap-1 text-xs font-medium">
+              <Zap className="h-4 w-4 text-orange-500" />
+              Piche: <span className="font-bold text-base">{kitnaPiche}</span>
             </div>
-             <div className="flex items-center gap-2 text-sm font-medium">
-                <Clock className="h-5 w-5 text-blue-500" />
-                Start Time: <span className="font-bold text-lg">{gameState.startTime ? gameState.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Not Started'}</span>
+             <div className="flex items-center gap-1 text-xs font-medium">
+                <Clock className="h-4 w-4 text-blue-500" />
+                Start: <span className="font-bold text-base">{gameState.startTime ? gameState.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</span>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleStartTime} variant="outline" disabled={!!gameState.startTime}><Clock className="mr-2 h-4 w-4" /> Start</Button>
+            <Button onClick={handleStartTime} size="sm" variant="outline" disabled={!!gameState.startTime}><Clock className="mr-1 h-4 w-4" /> Start</Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive"><RotateCcw className="mr-2 h-4 w-4" /> Reset</Button>
+                <Button size="sm" variant="destructive"><RotateCcw className="mr-1 h-4 w-4" /> Reset</Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -285,3 +285,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
