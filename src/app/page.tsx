@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { MoreVertical, Save, Trash2, Zap, RotateCcw } from 'lucide-react';
+import { MoreVertical, Save, Trash2, Zap, RotateCcw, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { LoadGameDialog } from '@/components/load-game-dialog';
 import { EditPlayersDialog } from '@/components/edit-players-dialog';
-import { GameState, Player, SavedGame, initialGameState } from '@/lib/types';
+import { GameState, Player, SavedGame, initialGameState, RoundData } from '@/lib/types';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -70,7 +70,6 @@ export default function Home() {
     const newRounds = [...gameState.rounds];
     const round = newRounds[roundIndex];
 
-    // Simple update: just change the score, bid/tricks become invalid
     round.scores[playerKey] = Math.round(newScore);
     round.bids[playerKey] = null;
     round.tricks[playerKey] = null;
@@ -93,7 +92,7 @@ export default function Home() {
 
   const handleScoreSaveOnEnter = (e: React.KeyboardEvent<HTMLInputElement>, roundIndex: number, playerKey: string) => {
     if (e.key === 'Enter') {
-        handleScoreChange(roundIndex, playerKey, parseFloat(e.currentTarget.value));
+        handleScoreChange(roundIndex, playerKey, parseInt(e.currentTarget.value, 10));
     } else if (e.key === 'Escape') {
         setEditingCell(null);
     }
@@ -156,6 +155,23 @@ export default function Home() {
   const deleteHistory = () => {
     localStorage.removeItem('callbreak-history');
   }
+  
+  const handleAddRound = () => {
+    const newRound: RoundData = {
+      bids: {},
+      tricks: {},
+      scores: {},
+    };
+    gameState.players.forEach(player => {
+      newRound.bids[player.key] = null;
+      newRound.tricks[player.key] = null;
+      newRound.scores[player.key] = null;
+    });
+    setGameState(prevState => ({
+      ...prevState,
+      rounds: [...prevState.rounds, newRound],
+    }));
+  };
 
   const handleLegacyPlayerEdit = (newPlayers: Player[]) => {
     const newRounds = gameState.rounds.map(round => {
@@ -199,6 +215,7 @@ export default function Home() {
               <DropdownMenuContent align="end">
                 <ThemeToggle />
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={handleAddRound}><PlusCircle className="mr-2 h-4 w-4" /> Add Round</DropdownMenuItem>
                 <EditPlayersDialog players={gameState.players} onSave={handleLegacyPlayerEdit} />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={saveGame}><Save className="mr-2 h-4 w-4" /> Save to History</DropdownMenuItem>
@@ -355,5 +372,3 @@ export default function Home() {
     </main>
   );
 }
-
-    
