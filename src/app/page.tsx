@@ -9,7 +9,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { LoadGameDialog } from '@/components/load-game-dialog';
-import { EditPlayersDialog } from '@/components/edit-players-dialog';
 import { GameState, Player, SavedGame, initialGameState, RoundData } from '@/lib/types';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Input } from '@/components/ui/input';
@@ -173,25 +172,6 @@ export default function Home() {
     }));
   };
 
-  const handleLegacyPlayerEdit = (newPlayers: Player[]) => {
-    const newRounds = gameState.rounds.map(round => {
-        const newBids: { [key: string]: number | null } = {};
-        const newTricks: { [key: string]: number | null } = {};
-        const newScores: { [key: string]: number | null } = {};
-
-        gameState.players.forEach((oldPlayer, index) => {
-            const newPlayer = newPlayers[index];
-            newBids[newPlayer.key] = round.bids[oldPlayer.key] ?? null;
-            newTricks[newPlayer.key] = round.tricks[oldPlayer.key] ?? null;
-            newScores[newPlayer.key] = round.scores[oldPlayer.key] ?? null;
-        });
-
-        return { bids: newBids, tricks: newTricks, scores: newScores };
-    });
-
-    setGameState({ ...gameState, players: newPlayers, rounds: newRounds, });
-  };
-
   if (!isMounted) {
     return null;
   }
@@ -216,7 +196,6 @@ export default function Home() {
                 <ThemeToggle />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleAddRound}><PlusCircle className="mr-2 h-4 w-4" /> Add Round</DropdownMenuItem>
-                <EditPlayersDialog players={gameState.players} onSave={handleLegacyPlayerEdit} />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={saveGame}><Save className="mr-2 h-4 w-4" /> Save to History</DropdownMenuItem>
                 <LoadGameDialog onGameLoad={loadGame} />
