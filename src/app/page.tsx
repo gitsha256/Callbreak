@@ -31,9 +31,8 @@ export default function Home() {
 
   const gameState = history[historyIndex];
 
-  const updateGameState = (updater: (prevState: GameState) => GameState) => {
+  const updateGameState = (newState: GameState) => {
     const newHistory = history.slice(0, historyIndex + 1);
-    const newState = updater(newHistory[historyIndex]);
     setHistory([...newHistory, newState]);
     setHistoryIndex(newHistory.length);
   };
@@ -85,12 +84,10 @@ export default function Home() {
         setEditingCell(null);
         return;
     }
-    updateGameState(prevState => {
-        const newPlayers = prevState.players.map(p =>
-            p.key === playerKey ? { ...p, name: newName } : p
-        );
-        return { ...prevState, players: newPlayers };
-    });
+    const newPlayers = gameState.players.map(p =>
+        p.key === playerKey ? { ...p, name: newName } : p
+    );
+    updateGameState({ ...gameState, players: newPlayers });
     setEditingCell(null);
   };
   
@@ -99,20 +96,23 @@ export default function Home() {
         setEditingCell(null);
         return;
     }
-    updateGameState(prevState => {
-        const newRounds = [...prevState.rounds];
-        const round = newRounds[roundIndex];
     
-        round.scores[playerKey] = Math.round(newScore);
-        round.bids[playerKey] = null;
-        round.tricks[playerKey] = null;
-
-        return {
-          ...prevState,
-          rounds: newRounds,
-          startTime: prevState.startTime || new Date(),
-        };
+    const newRounds = gameState.rounds.map((round, rIndex) => {
+        if (rIndex === roundIndex) {
+            const newScores = { ...round.scores, [playerKey]: Math.round(newScore) };
+            const newBids = { ...round.bids, [playerKey]: null };
+            const newTricks = { ...round.tricks, [playerKey]: null };
+            return { ...round, scores: newScores, bids: newBids, tricks: newTricks };
+        }
+        return round;
     });
+
+    updateGameState({
+      ...gameState,
+      rounds: newRounds,
+      startTime: gameState.startTime || new Date(),
+    });
+
     setEditingCell(null);
   };
 
@@ -191,7 +191,7 @@ export default function Home() {
 
 
   const resetGame = () => {
-    updateGameState(() => initialGameState(gameState.players.map(p => p.name)));
+    updateGameState(initialGameState(gameState.players.map(p => p.name)));
   };
   
   const saveGame = () => {
@@ -210,9 +210,7 @@ export default function Home() {
         ...loadedGameState,
         startTime: loadedGameState.startTime ? new Date(loadedGameState.startTime) : null,
     };
-    const newHistory = [...history.slice(0, historyIndex + 1), revivedGameState];
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
+    updateGameState(revivedGameState);
     setEditingCell(null);
   };
 
@@ -227,21 +225,19 @@ export default function Home() {
   }
   
   const handleAddRound = () => {
-    updateGameState(prevState => {
-        const newRound: RoundData = {
-          bids: {},
-          tricks: {},
-          scores: {},
-        };
-        prevState.players.forEach(player => {
-          newRound.bids[player.key] = null;
-          newRound.tricks[player.key] = null;
-          newRound.scores[player.key] = null;
-        });
-        return {
-          ...prevState,
-          rounds: [...prevState.rounds, newRound],
-        };
+    const newRound: RoundData = {
+      bids: {},
+      tricks: {},
+      scores: {},
+    };
+    gameState.players.forEach(player => {
+      newRound.bids[player.key] = null;
+      newRound.tricks[player.key] = null;
+      newRound.scores[player.key] = null;
+    });
+    updateGameState({
+      ...gameState,
+      rounds: [...gameState.rounds, newRound],
     });
   };
 
