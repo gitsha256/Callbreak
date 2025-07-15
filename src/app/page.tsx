@@ -266,7 +266,9 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
-      <h1 className="text-2xl font-semibold tracking-tight mb-4">TASH PREMIRE LEAGUE</h1>
+      <h1 className="text-4xl font-bold tracking-tight mb-4 text-gradient-gold">
+        TASH PREMIER LEAGUE
+      </h1>
       <Card className="w-full max-w-4xl shadow-2xl">
         <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
             <div className="flex items-center gap-2">
