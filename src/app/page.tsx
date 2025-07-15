@@ -344,9 +344,9 @@ export default function Home() {
                   {gameState.players.map((player, index) => {
                     const rank = ranks[player.key];
                     const rankColorClass = 
-                      rank === 1 ? 'bg-green-100 dark:bg-green-900/50' :
-                      rank === 3 ? 'bg-yellow-100 dark:bg-yellow-900/50' :
-                      rank === 4 ? 'bg-red-100 dark:bg-red-900/50' :
+                      rank === 1 ? 'bg-green-200 dark:bg-green-900/50' :
+                      rank === 3 ? 'bg-yellow-200 dark:bg-yellow-900/50' :
+                      rank === 4 ? 'bg-red-200 dark:bg-red-900/50' :
                       '';
                     return (
                       <TableCell 
