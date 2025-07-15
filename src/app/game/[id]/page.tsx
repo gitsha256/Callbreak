@@ -57,7 +57,10 @@ export default function GameViewerPage() {
 
     gameState.rounds.forEach(round => {
       gameState.players.forEach(player => {
-        totals[player.key] += round.scores[player.key] || 0;
+        const score = round.scores[player.key];
+        if (score !== null && score !== undefined && Math.abs(score) >= 10) {
+          totals[player.key] += score;
+        }
       });
     });
     return totals;
