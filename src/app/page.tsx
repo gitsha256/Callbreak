@@ -292,6 +292,7 @@ export default function Home() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleAddRound}><PlusCircle className="mr-2 h-4 w-4" /> Add Round</DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={saveGame}><Save className="mr-2 h-4 w-4" /> Save Game</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => router.push('/history')}>
                     <Upload className="mr-2 h-4 w-4" /> Saved Games
                 </DropdownMenuItem>
@@ -481,7 +482,6 @@ export default function Home() {
                     {new Date(gameState.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Button>
             )}
-            <Button size="sm" variant="default" onClick={saveGame}><Save className="mr-1 h-4 w-4" /> Save</Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button size="sm" variant="destructive"><RotateCcw className="mr-1 h-4 w-4" /> Clear</Button>

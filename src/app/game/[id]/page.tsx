@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { GameState, SavedGame, RoundData } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft, Download, Save } from 'lucide-react';
 
 const getOrdinal = (n: number) => {
   const s = ["th", "st", "nd", "rd"];
@@ -133,7 +133,7 @@ export default function GameViewerPage() {
                 Game Summary
             </CardTitle>
             <p className="text-xs text-muted-foreground">
-                Saved on {savedGame ? new Date(savedGame.timestamp).toLocaleString() : ''}
+                Tash on {savedGame ? new Date(savedGame.timestamp).toLocaleString() : ''}
             </p>
           </div>
           <div className="w-10"></div>
