@@ -163,7 +163,6 @@ export default function GameViewerPage() {
                   const handSum = gameState.players.reduce((acc, player) => {
                       const score = round.scores[player.key];
                       if (score === null || isNaN(score) || score < 0) return acc;
-                      if (Math.abs(score) < 10) return acc;
                       return acc + score.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
                   }, 0);
 

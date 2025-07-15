@@ -295,7 +295,6 @@ export default function Home() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleAddRound}><PlusCircle className="mr-2 h-4 w-4" /> Add Round</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={saveGame}><Save className="mr-2 h-4 w-4" /> Save Game</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => router.push('/history')}>
                     <Upload className="mr-2 h-4 w-4" /> Saved Games
                 </DropdownMenuItem>
@@ -378,7 +377,6 @@ export default function Home() {
                   const handSum = gameState.players.reduce((acc, player) => {
                       const score = round.scores[player.key];
                       if (score === null || isNaN(score) || score < 0) return acc;
-                      if (Math.abs(score) < 10) return acc;
                       return acc + score.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
                   }, 0);
 
