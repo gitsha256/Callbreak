@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SavedGame } from '@/lib/types';
-import { ArrowLeft, View } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function HistoryPage() {
   const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
@@ -53,24 +53,14 @@ export default function HistoryPage() {
                   <TableRow>
                     <TableHead className="w-[50px]">No.</TableHead>
                     <TableHead>Timestamp</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                     {savedGames.map((game, index) => (
-                    <TableRow key={game.id}>
+                    <TableRow key={game.id} onClick={() => handleViewGame(game.id)} className="cursor-pointer">
                         <TableCell className="font-medium">{index + 1}</TableCell>
                         <TableCell>
                         {new Date(game.timestamp).toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleViewGame(game.id)}
-                        >
-                            <View className="h-4 w-4" />
-                        </Button>
                         </TableCell>
                     </TableRow>
                     ))}
