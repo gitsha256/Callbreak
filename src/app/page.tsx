@@ -420,18 +420,19 @@ export default function Home() {
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 justify-end items-center p-2 bg-muted/50">
           <div className="flex gap-2">
+            <Button size="sm" variant="default" onClick={saveGame}><Save className="mr-1 h-4 w-4" /> Save</Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button size="sm" variant="destructive"><RotateCcw className="mr-1 h-4 w-4" /> Reset</Button>
+                <Button size="sm" variant="destructive"><RotateCcw className="mr-1 h-4 w-4" /> Clear</Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Reset Game?</AlertDialogTitle>
-                  <AlertDialogDescription>Are you sure you want to reset all scores to zero? This action cannot be undone.</AlertDialogDescription>
+                  <AlertDialogTitle>Clear Game?</AlertDialogTitle>
+                  <AlertDialogDescription>Are you sure you want to clear all scores to zero? This action cannot be undone.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={resetGame}>Reset</AlertDialogAction>
+                  <AlertDialogAction onClick={resetGame}>Clear</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
