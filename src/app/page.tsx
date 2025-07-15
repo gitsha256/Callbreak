@@ -31,14 +31,11 @@ export default function Home() {
 
   const gameState = history[historyIndex];
 
-  const updateGameState = (newState: GameState | ((prevState: GameState) => GameState)) => {
-    setHistory(prevHistory => {
-        const currentState = prevHistory[historyIndex];
-        const nextState = typeof newState === 'function' ? newState(currentState) : newState;
-        const newHistory = [...prevHistory.slice(0, historyIndex + 1), nextState];
-        setHistoryIndex(newHistory.length - 1);
-        return newHistory;
-    });
+  const updateGameState = (updater: (prevState: GameState) => GameState) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    const newState = updater(newHistory[historyIndex]);
+    setHistory([...newHistory, newState]);
+    setHistoryIndex(newHistory.length);
   };
   
   const undo = () => {
@@ -194,8 +191,7 @@ export default function Home() {
 
 
   const resetGame = () => {
-    const freshState = initialGameState(gameState.players.map(p => p.name));
-    updateGameState(freshState);
+    updateGameState(() => initialGameState(gameState.players.map(p => p.name)));
   };
   
   const saveGame = () => {
@@ -214,7 +210,9 @@ export default function Home() {
         ...loadedGameState,
         startTime: loadedGameState.startTime ? new Date(loadedGameState.startTime) : null,
     };
-    updateGameState(revivedGameState);
+    const newHistory = [...history.slice(0, historyIndex + 1), revivedGameState];
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
     setEditingCell(null);
   };
 
