@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { MoreVertical, Save, Trash2, Zap, RotateCcw, PlusCircle } from 'lucide-react';
+import { MoreVertical, Save, Trash2, Zap, RotateCcw, PlusCircle, Undo, Redo } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -21,10 +21,35 @@ const getOrdinal = (n: number) => {
 };
 
 export default function Home() {
-  const [gameState, setGameState] = useState<GameState>(initialGameState);
+  const [history, setHistory] = useState<GameState[]>([initialGameState()]);
+  const [historyIndex, setHistoryIndex] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [editingCell, setEditingCell] = useState<{ type: 'player' | 'score'; key: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const gameState = history[historyIndex];
+
+  const updateGameState = (newState: GameState | ((prevState: GameState) => GameState)) => {
+    setHistory(prevHistory => {
+        const currentState = prevHistory[historyIndex];
+        const nextState = typeof newState === 'function' ? newState(currentState) : newState;
+        const newHistory = [...prevHistory.slice(0, historyIndex + 1), nextState];
+        setHistoryIndex(newHistory.length - 1);
+        return newHistory;
+    });
+  };
+  
+  const undo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+    }
+  };
+
+  const redo = () => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(historyIndex + 1);
+    }
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -36,7 +61,8 @@ export default function Home() {
             ...loadedGameState,
             startTime: loadedGameState.startTime ? new Date(loadedGameState.startTime) : null,
         };
-        setGameState(revivedGameState);
+        setHistory([revivedGameState]);
+        setHistoryIndex(0);
       } catch (e) {
         console.error("Could not load game state from localStorage", e);
       }
@@ -60,10 +86,12 @@ export default function Home() {
         setEditingCell(null);
         return;
     }
-    const newPlayers = gameState.players.map(p =>
-        p.key === playerKey ? { ...p, name: newName } : p
-    );
-    setGameState({ ...gameState, players: newPlayers });
+    updateGameState(prevState => {
+        const newPlayers = prevState.players.map(p =>
+            p.key === playerKey ? { ...p, name: newName } : p
+        );
+        return { ...prevState, players: newPlayers };
+    });
     setEditingCell(null);
   };
   
@@ -72,18 +100,20 @@ export default function Home() {
         setEditingCell(null);
         return;
     }
-    const newRounds = [...gameState.rounds];
-    const round = newRounds[roundIndex];
+    updateGameState(prevState => {
+        const newRounds = [...prevState.rounds];
+        const round = newRounds[roundIndex];
+    
+        round.scores[playerKey] = Math.round(newScore);
+        round.bids[playerKey] = null;
+        round.tricks[playerKey] = null;
 
-    round.scores[playerKey] = Math.round(newScore);
-    round.bids[playerKey] = null;
-    round.tricks[playerKey] = null;
-
-    setGameState(prevState => ({
-      ...prevState,
-      rounds: newRounds,
-      startTime: prevState.startTime || new Date(),
-    }));
+        return {
+          ...prevState,
+          rounds: newRounds,
+          startTime: prevState.startTime || new Date(),
+        };
+    });
     setEditingCell(null);
   };
 
@@ -105,6 +135,7 @@ export default function Home() {
 
   const totalScores = useMemo(() => {
     const totals: { [key: string]: number } = {};
+    if (!gameState) return totals;
     gameState.players.forEach(p => totals[p.key] = 0);
 
     gameState.rounds.forEach(round => {
@@ -116,25 +147,26 @@ export default function Home() {
   }, [gameState]);
 
   const ranks = useMemo(() => {
+    const playerRanks: { [key: string]: number } = {};
+    if (!gameState) return playerRanks;
+
     const sortedScores = gameState.players
       .map(p => ({ key: p.key, score: totalScores[p.key] }))
       .sort((a, b) => b.score - a.score);
     
-    const playerRanks: { [key: string]: number } = {};
     if (sortedScores.length === 0) return playerRanks;
 
     let rank = 1;
     playerRanks[sortedScores[0].key] = rank;
 
     for (let i = 1; i < sortedScores.length; i++) {
-        // If score is different from the previous player, update the rank
         if (sortedScores[i].score < sortedScores[i - 1].score) {
             rank = i + 1;
         }
         playerRanks[sortedScores[i].key] = rank;
     }
     return playerRanks;
-  }, [totalScores, gameState.players]);
+  }, [totalScores, gameState]);
 
   const kitnaPiche = useMemo(() => {
     const scores = Object.values(totalScores);
@@ -146,7 +178,7 @@ export default function Home() {
 
   const resetGame = () => {
     const freshState = initialGameState(gameState.players.map(p => p.name));
-    setGameState(freshState);
+    updateGameState(freshState);
   };
   
   const saveGame = () => {
@@ -165,7 +197,7 @@ export default function Home() {
         ...loadedGameState,
         startTime: loadedGameState.startTime ? new Date(loadedGameState.startTime) : null,
     };
-    setGameState(revivedGameState);
+    updateGameState(revivedGameState);
     setEditingCell(null);
   };
 
@@ -174,23 +206,25 @@ export default function Home() {
   }
   
   const handleAddRound = () => {
-    const newRound: RoundData = {
-      bids: {},
-      tricks: {},
-      scores: {},
-    };
-    gameState.players.forEach(player => {
-      newRound.bids[player.key] = null;
-      newRound.tricks[player.key] = null;
-      newRound.scores[player.key] = null;
+    updateGameState(prevState => {
+        const newRound: RoundData = {
+          bids: {},
+          tricks: {},
+          scores: {},
+        };
+        prevState.players.forEach(player => {
+          newRound.bids[player.key] = null;
+          newRound.tricks[player.key] = null;
+          newRound.scores[player.key] = null;
+        });
+        return {
+          ...prevState,
+          rounds: [...prevState.rounds, newRound],
+        };
     });
-    setGameState(prevState => ({
-      ...prevState,
-      rounds: [...prevState.rounds, newRound],
-    }));
   };
 
-  if (!isMounted) {
+  if (!isMounted || !gameState) {
     return null;
   }
   
@@ -206,12 +240,13 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
       <Card className="w-full max-w-4xl shadow-2xl">
         <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
-            <div className="flex items-center gap-4">
-                <CardTitle className="font-headline text-xl sm:text-2xl">Callbreak</CardTitle>
-                 <div className="flex items-center gap-1 text-sm font-medium">
-                    <Zap className="h-4 w-4 text-orange-500" />
-                    Piche: <span className="font-bold text-base">{kitnaPiche}</span>
-                </div>
+            <div className="flex items-center gap-2">
+                 <Button variant="ghost" size="icon" onClick={undo} disabled={historyIndex === 0}><Undo /></Button>
+                 <Button variant="ghost" size="icon" onClick={redo} disabled={historyIndex === history.length - 1}><Redo /></Button>
+            </div>
+            <div className="flex items-center gap-1 text-sm font-medium">
+                <Zap className="h-4 w-4 text-orange-500" />
+                Piche: <span className="font-bold text-base">{kitnaPiche}</span>
             </div>
           <div className="flex items-center gap-2">
             <DropdownMenu>
