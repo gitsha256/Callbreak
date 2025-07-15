@@ -160,6 +160,7 @@ export default function GameViewerPage() {
                   const handSum = gameState.players.reduce((acc, player) => {
                       const score = round.scores[player.key];
                       if (score === null || isNaN(score) || score < 0) return acc;
+                      if (Math.abs(score) < 10) return acc;
                       return acc + score.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
                   }, 0);
 
@@ -200,14 +201,17 @@ export default function GameViewerPage() {
               <tfoot className="border-t-2 border-primary">
                 <TableRow>
                   <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs border-r">Total</TableCell>
-                  {gameState.players.map((player) => (
-                    <TableCell 
-                        key={player.key} 
-                        className="text-center font-bold text-base text-primary p-1 border-r"
-                    >
-                        {totalScores[player.key]}
-                    </TableCell>
-                  ))}
+                  {gameState.players.map((player) => {
+                    const totalScore = totalScores[player.key];
+                    return (
+                        <TableCell 
+                            key={player.key} 
+                            className="text-center font-bold text-base text-primary p-1 border-r"
+                        >
+                            {Math.abs(totalScore) >= 10 ? totalScore : ''}
+                        </TableCell>
+                    )
+                  })}
                   <TableCell className="border-l"></TableCell>
                 </TableRow>
                 <TableRow>
