@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { MoreVertical, Save, Upload, Trash2, Clock, Zap, RotateCcw, Pencil } from 'lucide-react';
+import { MoreVertical, Save, Upload, Trash2, Clock, Zap, RotateCcw, Pencil, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
@@ -12,12 +12,9 @@ import { LoadGameDialog } from '@/components/load-game-dialog';
 import { EditPlayersDialog } from '@/components/edit-players-dialog';
 import { useToast } from "@/hooks/use-toast"
 import { GameState, Player, SavedGame, initialGameState } from '@/lib/types';
+import { useTheme } from 'next-themes';
+import { ThemeToggle } from '@/components/theme-toggle';
 
-const roundColors = [
-  "bg-green-500/10", "bg-green-500/20", "bg-yellow-500/10", "bg-yellow-500/20",
-  "bg-yellow-500/30", "bg-orange-500/10", "bg-orange-500/20", "bg-orange-500/30",
-  "bg-red-500/10", "bg-red-500/20", "bg-red-500/30", "bg-red-500/40", "bg-red-500/50"
-];
 
 export default function Home() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
@@ -169,50 +166,55 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
       <Card className="w-full max-w-4xl shadow-2xl">
         <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
-          <CardTitle className="font-headline text-xl sm:text-2xl">Callbreak Companion</CardTitle>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon"><MoreVertical /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <EditPlayersDialog players={gameState.players} onSave={handlePlayerNameChange} />
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={saveGame}><Save className="mr-2 h-4 w-4" /> Save to History</DropdownMenuItem>
-              <LoadGameDialog onGameLoad={loadGame} />
-              <DropdownMenuSeparator />
-               <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}><Trash2 className="mr-2 h-4 w-4 text-destructive" /> Delete History</DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This will permanently delete all your saved games. This action cannot be undone.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={deleteHistory} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <div className="flex items-center gap-4">
+                <CardTitle className="font-headline text-xl sm:text-2xl">Callbreak</CardTitle>
+            </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon"><MoreVertical /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <EditPlayersDialog players={gameState.players} onSave={handlePlayerNameChange} />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={saveGame}><Save className="mr-2 h-4 w-4" /> Save to History</DropdownMenuItem>
+                <LoadGameDialog onGameLoad={loadGame} />
+                <DropdownMenuSeparator />
+                 <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}><Trash2 className="mr-2 h-4 w-4 text-destructive" /> Delete History</DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>This will permanently delete all your saved games. This action cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={deleteHistory} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[40px] text-center font-bold sticky left-0 bg-card z-10 p-1">Rnd</TableHead>
+                  <TableHead className="min-w-[30px] w-[30px] text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">Rnd</TableHead>
                   {gameState.players.map(player => (
-                    <TableHead key={player.key} className="min-w-[70px] text-center font-bold truncate px-1">{player.name}</TableHead>
+                    <TableHead key={player.key} className="min-w-[50px] w-[50px] text-center font-bold truncate px-1 text-xs">{player.name}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {gameState.rounds.map((round, roundIndex) => (
-                  <TableRow key={roundIndex} className={`transition-all duration-300 ${roundColors[roundIndex]}`}>
-                    <TableCell className="text-center font-semibold text-base sticky left-0 bg-inherit z-10 p-1">{roundIndex + 1}</TableCell>
+                  <TableRow key={roundIndex}>
+                    <TableCell className="text-center font-semibold text-sm sticky left-0 bg-inherit z-10 p-1">{roundIndex + 1}</TableCell>
                     {gameState.players.map(player => (
                       <TableCell key={player.key} className="text-center p-0">
                         <ScoreDialog
@@ -222,10 +224,10 @@ export default function Home() {
                           currentTricks={round.tricks[player.key]}
                           onSave={handleScoreChange}
                         >
-                          <div className="p-1 rounded-md hover:bg-primary/10 cursor-pointer transition-colors w-full h-full min-h-[40px] flex flex-col justify-center">
-                            <div className="text-base font-bold">{round.scores[player.key]?.toFixed(1) || "-"}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {round.bids[player.key] !== null ? `${round.bids[player.key]}/${round.tricks[player.key]}` : "B/T"}
+                          <div className="p-1 rounded-md hover:bg-primary/10 cursor-pointer transition-colors w-full h-full min-h-[36px] flex flex-col justify-center">
+                            <div className="text-sm font-bold">{round.scores[player.key]?.toFixed(1) || "-"}</div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {round.bids[player.key] !== null ? `${round.bids[player.key]}/${round.tricks[player.key]}` : ""}
                             </div>
                           </div>
                         </ScoreDialog>
@@ -236,15 +238,15 @@ export default function Home() {
               </TableBody>
               <tfoot className="border-t-2 border-primary">
                 <TableRow>
-                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1">Total</TableCell>
+                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">Total</TableCell>
                   {gameState.players.map(player => (
-                    <TableCell key={player.key} className="text-center font-bold text-lg text-primary p-1">{totalScores[player.key].toFixed(1)}</TableCell>
+                    <TableCell key={player.key} className="text-center font-bold text-base text-primary p-1">{totalScores[player.key].toFixed(1)}</TableCell>
                   ))}
                 </TableRow>
                 <TableRow>
-                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1">Rank</TableCell>
+                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">Rank</TableCell>
                   {gameState.players.map(player => (
-                    <TableCell key={player.key} className="text-center font-bold text-lg text-accent p-1">{ranks[player.key]}</TableCell>
+                    <TableCell key={player.key} className="text-center font-bold text-base text-accent p-1">{ranks[player.key]}</TableCell>
                   ))}
                 </TableRow>
               </tfoot>
@@ -285,5 +287,3 @@ export default function Home() {
     </main>
   );
 }
-
-    
