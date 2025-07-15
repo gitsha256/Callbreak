@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { MoreVertical, Save, Trash2, Zap, RotateCcw, PlusCircle, Undo, Redo, Upload } from 'lucide-react';
+import { MoreVertical, Save, Trash2, Coins, RotateCcw, PlusCircle, Undo, Redo, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -173,21 +173,21 @@ export default function Home() {
     const playersWithRank = sortedPlayers.map(p => ({ ...p, rank: ranks[p.key] }));
     const thirdPlacePlayers = playersWithRank.filter(p => p.rank === 3);
     const fourthPlacePlayers = playersWithRank.filter(p => p.rank === 4);
-
-    if (thirdPlacePlayers.length === 0 || fourthPlacePlayers.length === 0) {
-      return { displayText: "Piche: 0" };
-    }
-
+  
     if (fourthPlacePlayers.length > 1) {
       return { displayText: "Clash" };
+    }
+  
+    if (thirdPlacePlayers.length === 0 || fourthPlacePlayers.length === 0) {
+      return { displayText: "Piche: 0" };
     }
     
     const thirdPlaceScore = thirdPlacePlayers[0].score;
     const fourthPlaceScore = fourthPlacePlayers[0].score;
     const piche = thirdPlaceScore - fourthPlaceScore;
-
+  
     return { displayText: `${fourthPlacePlayers[0].name}: ${piche} Piche` };
-
+  
   }, [sortedPlayers, ranks]);
 
 
@@ -260,7 +260,7 @@ export default function Home() {
                  <Button variant="ghost" size="icon" onClick={redo} disabled={historyIndex === history.length - 1}><Redo /></Button>
             </div>
             <div className="flex items-center gap-1 text-sm font-medium">
-                <Zap className="h-4 w-4 text-orange-500" />
+                <Coins className="h-4 w-4 text-orange-500" />
                 <span className="font-bold text-base">{picheData.displayText}</span>
             </div>
           <div className="flex items-center gap-2">
@@ -456,3 +456,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
