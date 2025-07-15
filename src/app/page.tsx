@@ -178,14 +178,14 @@ export default function Home() {
       return { displayText: "Piche: 0" };
     }
 
-    const thirdPlaceScore = thirdPlacePlayers[0].score;
-    const fourthPlaceScore = fourthPlacePlayers[0].score;
-    const piche = thirdPlaceScore - fourthPlaceScore;
-
     if (fourthPlacePlayers.length > 1) {
       return { displayText: "Clash" };
     }
     
+    const thirdPlaceScore = thirdPlacePlayers[0].score;
+    const fourthPlaceScore = fourthPlacePlayers[0].score;
+    const piche = thirdPlaceScore - fourthPlaceScore;
+
     return { displayText: `${fourthPlacePlayers[0].name} Piche: ${piche}` };
 
   }, [sortedPlayers, ranks]);
@@ -456,5 +456,3 @@ export default function Home() {
     </main>
   );
 }
-
-    
