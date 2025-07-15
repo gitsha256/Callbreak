@@ -33,14 +33,11 @@ export default function Home() {
   const gameState = history[historyIndex];
 
   const updateGameState = (updater: (prevState: GameState) => GameState) => {
-    setHistory(prevHistory => {
-      const newHistory = prevHistory.slice(0, historyIndex + 1);
-      const currentGameState = newHistory[historyIndex];
-      const newGameState = updater(currentGameState);
-      const updatedHistory = [...newHistory, newGameState];
-      setHistoryIndex(updatedHistory.length - 1);
-      return updatedHistory;
-    });
+    const currentGameState = history[historyIndex];
+    const newGameState = updater(currentGameState);
+    const newHistory = [...history.slice(0, historyIndex + 1), newGameState];
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
   };
   
   const undo = () => {
@@ -478,6 +475,11 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 justify-end items-center p-2 bg-muted/50">
+           {gameState.startTime && (
+                <div className="text-xs text-muted-foreground mr-auto">
+                    Game started: {new Date(gameState.startTime).toLocaleString()}
+                </div>
+            )}
           <div className="flex gap-2">
             <Button size="sm" variant="default" onClick={saveGame}><Save className="mr-1 h-4 w-4" /> Save</Button>
             <AlertDialog>
