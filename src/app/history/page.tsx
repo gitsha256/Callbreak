@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SavedGame } from '@/lib/types';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, View } from 'lucide-react';
 
 export default function HistoryPage() {
   const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
@@ -19,7 +20,8 @@ export default function HistoryPage() {
     try {
       const history = localStorage.getItem('callbreak-history');
       if (history) {
-        setSavedGames(JSON.parse(history));
+        // Sort games from newest to oldest
+        setSavedGames(JSON.parse(history).sort((a: SavedGame, b: SavedGame) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       } else {
         setSavedGames([]);
       }
@@ -41,31 +43,47 @@ export default function HistoryPage() {
     <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader>
-          <CardTitle>Saved Games</CardTitle>
+          <CardTitle>Saved Games ({savedGames.length})</CardTitle>
         </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-96 w-full rounded-md border p-2">
+        <CardContent className="p-0">
+          <ScrollArea className="h-96 w-full rounded-md border">
             {savedGames.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {savedGames.map((game) => (
-                  <Button
-                    key={game.id}
-                    variant="ghost"
-                    className="justify-start"
-                    onClick={() => handleViewGame(game.id)}
-                  >
-                    Tash on {new Date(game.timestamp).toLocaleString()}
-                  </Button>
-                ))}
-              </div>
+               <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">No.</TableHead>
+                    <TableHead>Timestamp</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {savedGames.map((game, index) => (
+                    <TableRow key={game.id}>
+                        <TableCell className="font-medium">{index + 1}</TableCell>
+                        <TableCell>
+                        {new Date(game.timestamp).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleViewGame(game.id)}
+                        >
+                            <View className="h-4 w-4" />
+                        </Button>
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
             ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
+              <div className="flex items-center justify-center h-full text-muted-foreground p-4">
                 No saved games found.
               </div>
             )}
           </ScrollArea>
         </CardContent>
-        <CardFooter className="flex justify-start">
+        <CardFooter className="flex justify-start pt-6">
              <Button onClick={() => router.push('/')} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Home</Button>
         </CardFooter>
       </Card>
