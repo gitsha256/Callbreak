@@ -2,13 +2,13 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { MoreVertical, Save, Trash2, Drumstick, RotateCcw, PlusCircle, Undo, Redo, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { LoadGameDialog } from '@/components/load-game-dialog';
 import { GameState, Player, SavedGame, initialGameState, RoundData } from '@/lib/types';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,8 @@ const getOrdinal = (n: number) => {
 };
 
 export default function Home() {
-  const [history, setHistory] = useState<GameState[]>([initialGameState()]);
+  const router = useRouter();
+  const [history, setHistory] = useState<GameState[]>(() => [initialGameState()]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [editingCell, setEditingCell] = useState<{ type: 'player' | 'score'; key: string } | null>(null);
@@ -31,10 +32,15 @@ export default function Home() {
 
   const gameState = history[historyIndex];
 
-  const updateGameState = (newState: GameState) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    setHistory([...newHistory, newState]);
-    setHistoryIndex(newHistory.length);
+  const updateGameState = (updater: (prevState: GameState) => GameState) => {
+    setHistory(prevHistory => {
+      const newHistory = prevHistory.slice(0, historyIndex + 1);
+      const currentGameState = newHistory[historyIndex];
+      const newGameState = updater(currentGameState);
+      const updatedHistory = [...newHistory, newGameState];
+      setHistoryIndex(updatedHistory.length - 1);
+      return updatedHistory;
+    });
   };
   
   const undo = () => {
@@ -84,10 +90,12 @@ export default function Home() {
         setEditingCell(null);
         return;
     }
-    const newPlayers = gameState.players.map(p =>
-        p.key === playerKey ? { ...p, name: newName } : p
-    );
-    updateGameState({ ...gameState, players: newPlayers });
+    updateGameState(prevState => {
+        const newPlayers = prevState.players.map(p =>
+            p.key === playerKey ? { ...p, name: newName } : p
+        );
+        return { ...prevState, players: newPlayers };
+    });
     setEditingCell(null);
   };
   
@@ -97,20 +105,22 @@ export default function Home() {
         return;
     }
     
-    const newRounds = gameState.rounds.map((round, rIndex) => {
-        if (rIndex === roundIndex) {
-            const newScores = { ...round.scores, [playerKey]: Math.round(newScore) };
-            const newBids = { ...round.bids, [playerKey]: null };
-            const newTricks = { ...round.tricks, [playerKey]: null };
-            return { ...round, scores: newScores, bids: newBids, tricks: newTricks };
-        }
-        return round;
-    });
-
-    updateGameState({
-      ...gameState,
-      rounds: newRounds,
-      startTime: gameState.startTime || new Date(),
+    updateGameState(prevState => {
+        const newRounds = prevState.rounds.map((round, rIndex) => {
+            if (rIndex === roundIndex) {
+                const newScores = { ...round.scores, [playerKey]: Math.round(newScore) };
+                const newBids = { ...round.bids, [playerKey]: null };
+                const newTricks = { ...round.tricks, [playerKey]: null };
+                return { ...round, scores: newScores, bids: newBids, tricks: newTricks };
+            }
+            return round;
+        });
+        
+        return {
+            ...prevState,
+            rounds: newRounds,
+            startTime: prevState.startTime || new Date(),
+        };
     });
 
     setEditingCell(null);
@@ -191,7 +201,10 @@ export default function Home() {
 
 
   const resetGame = () => {
-    updateGameState(initialGameState(gameState.players.map(p => p.name)));
+    const playerNames = gameState.players.map(p => p.name);
+    const newGame = initialGameState(playerNames);
+    setHistory([newGame]);
+    setHistoryIndex(0);
   };
   
   const saveGame = () => {
@@ -210,7 +223,8 @@ export default function Home() {
         ...loadedGameState,
         startTime: loadedGameState.startTime ? new Date(loadedGameState.startTime) : null,
     };
-    updateGameState(revivedGameState);
+    setHistory([revivedGameState]);
+    setHistoryIndex(0);
     setEditingCell(null);
   };
 
@@ -225,19 +239,17 @@ export default function Home() {
   }
   
   const handleAddRound = () => {
-    const newRound: RoundData = {
-      bids: {},
-      tricks: {},
-      scores: {},
-    };
-    gameState.players.forEach(player => {
-      newRound.bids[player.key] = null;
-      newRound.tricks[player.key] = null;
-      newRound.scores[player.key] = null;
-    });
-    updateGameState({
-      ...gameState,
-      rounds: [...gameState.rounds, newRound],
+    updateGameState(prevState => {
+        const newRound: RoundData = { bids: {}, tricks: {}, scores: {} };
+        prevState.players.forEach(player => {
+            newRound.bids[player.key] = null;
+            newRound.tricks[player.key] = null;
+            newRound.scores[player.key] = null;
+        });
+        return {
+            ...prevState,
+            rounds: [...prevState.rounds, newRound],
+        };
     });
   };
 
@@ -267,7 +279,7 @@ export default function Home() {
         <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
             <div className="flex items-center gap-2">
                  <Button variant="ghost" size="icon" onClick={undo} disabled={historyIndex === 0}><Undo /></Button>
-                 <Button variant="ghost" size="icon" onClick={redo} disabled={historyIndex === history.length - 1}><Redo /></Button>
+                 <Button variant="ghost" size="icon" onClick={redo} disabled={historyIndex >= history.length - 1}><Redo /></Button>
             </div>
             <div className="flex items-center gap-1 text-sm font-medium">
                 <Drumstick className="h-4 w-4 text-orange-500" />
@@ -283,7 +295,9 @@ export default function Home() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleAddRound}><PlusCircle className="mr-2 h-4 w-4" /> Add Round</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <LoadGameDialog />
+                <DropdownMenuItem onSelect={() => router.push('/history')}>
+                    <Upload className="mr-2 h-4 w-4" /> Saved Games
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                  <AlertDialog>
                   <AlertDialogTrigger asChild>
