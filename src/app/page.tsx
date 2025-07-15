@@ -286,7 +286,7 @@ export default function Home() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleAddRound}><PlusCircle className="mr-2 h-4 w-4" /> Add Round</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <LoadGameDialog onGameLoad={loadGame} />
+                <LoadGameDialog />
                 <DropdownMenuSeparator />
                  <AlertDialog>
                   <AlertDialogTrigger asChild>

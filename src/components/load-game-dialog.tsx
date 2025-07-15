@@ -2,20 +2,19 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { GameState, SavedGame } from '@/lib/types';
+import { SavedGame } from '@/lib/types';
 import { Upload } from 'lucide-react';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
-interface LoadGameDialogProps {
-  onGameLoad: (gameState: GameState) => void;
-}
 
-export function LoadGameDialog({ onGameLoad }: LoadGameDialogProps) {
+export function LoadGameDialog() {
   const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (isOpen) {
@@ -33,8 +32,8 @@ export function LoadGameDialog({ onGameLoad }: LoadGameDialogProps) {
     }
   }, [isOpen]);
 
-  const handleLoad = (game: SavedGame) => {
-    onGameLoad(game.gameState);
+  const handleViewGame = (gameId: number) => {
+    router.push(`/game/${gameId}`);
     setIsOpen(false);
   };
 
@@ -57,7 +56,7 @@ export function LoadGameDialog({ onGameLoad }: LoadGameDialogProps) {
                   key={game.id}
                   variant="ghost"
                   className="justify-start"
-                  onClick={() => handleLoad(game)}
+                  onClick={() => handleViewGame(game.id)}
                 >
                   Game from {new Date(game.timestamp).toLocaleString()}
                 </Button>
