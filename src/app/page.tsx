@@ -175,21 +175,19 @@ export default function Home() {
     const fourthPlacePlayers = playersWithRank.filter(p => p.rank === 4);
 
     if (thirdPlacePlayers.length === 0 || fourthPlacePlayers.length === 0) {
-      return { piche: 0, clashText: "Piche: 0" };
+      return { displayText: "Piche: 0" };
     }
 
     const thirdPlaceScore = thirdPlacePlayers[0].score;
     const fourthPlaceScore = fourthPlacePlayers[0].score;
     const piche = thirdPlaceScore - fourthPlaceScore;
 
-    let clashText = "";
     if (fourthPlacePlayers.length > 1) {
-      clashText = `Clash ${fourthPlacePlayers.map(p => p.name).join(' & ')}`;
-    } else {
-      clashText = `${fourthPlacePlayers[0].name} Piche:`;
+      return { displayText: "Clash" };
     }
+    
+    return { displayText: `${fourthPlacePlayers[0].name} Piche: ${piche}` };
 
-    return { piche, clashText };
   }, [sortedPlayers, ranks]);
 
 
@@ -263,7 +261,7 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-1 text-sm font-medium">
                 <Zap className="h-4 w-4 text-orange-500" />
-                {picheData.clashText} <span className="font-bold text-base">{picheData.clashText.startsWith("Clash") ? "" : picheData.piche}</span>
+                <span className="font-bold text-base">{picheData.displayText}</span>
             </div>
           <div className="flex items-center gap-2">
             <DropdownMenu>
