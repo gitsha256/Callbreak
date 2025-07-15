@@ -186,7 +186,7 @@ export default function Home() {
     const fourthPlaceScore = fourthPlacePlayers[0].score;
     const piche = thirdPlaceScore - fourthPlaceScore;
 
-    return { displayText: `${fourthPlacePlayers[0].name} Piche: ${piche}` };
+    return { displayText: `${fourthPlacePlayers[0].name}: ${piche} Piche` };
 
   }, [sortedPlayers, ranks]);
 
