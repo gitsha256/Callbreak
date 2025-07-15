@@ -2,14 +2,14 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { MoreVertical, Save, Upload, Trash2, Clock, Zap, RotateCcw, Pencil } from 'lucide-react';
+import { MoreVertical, Save, Trash2, Zap, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { LoadGameDialog } from '@/components/load-game-dialog';
-import { EditPlayersDialog } from '@/components/edit-players-dialog'; // Kept for accessibility
+import { EditPlayersDialog } from '@/components/edit-players-dialog';
 import { GameState, Player, SavedGame, initialGameState } from '@/lib/types';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Input } from '@/components/ui/input';
@@ -74,7 +74,11 @@ export default function Home() {
     round.bids[playerKey] = null;
     round.tricks[playerKey] = null;
 
-    setGameState({ ...gameState, rounds: newRounds });
+    setGameState(prevState => ({
+      ...prevState,
+      rounds: newRounds,
+      startTime: prevState.startTime || new Date(),
+    }));
     setEditingCell(null);
   };
 
@@ -126,12 +130,6 @@ export default function Home() {
   const resetGame = () => {
     const freshState = initialGameState(gameState.players.map(p => p.name));
     setGameState(freshState);
-  };
-  
-  const handleStartTime = () => {
-    if (!gameState.startTime) {
-      setGameState({ ...gameState, startTime: new Date() });
-    }
   };
   
   const saveGame = () => {
@@ -187,14 +185,19 @@ export default function Home() {
         <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
             <div className="flex items-center gap-4">
                 <CardTitle className="font-headline text-xl sm:text-2xl">Callbreak</CardTitle>
+                 <div className="flex items-center gap-1 text-sm font-medium">
+                    <Zap className="h-4 w-4 text-orange-500" />
+                    Piche: <span className="font-bold text-base">{kitnaPiche}</span>
+                </div>
             </div>
           <div className="flex items-center gap-2">
-            <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon"><MoreVertical /></Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <ThemeToggle />
+                <DropdownMenuSeparator />
                 <EditPlayersDialog players={gameState.players} onSave={handleLegacyPlayerEdit} />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={saveGame}><Save className="mr-2 h-4 w-4" /> Save to History</DropdownMenuItem>
@@ -306,19 +309,8 @@ export default function Home() {
             </Table>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row gap-2 justify-between items-center p-2 bg-muted/50">
-          <div className="flex flex-wrap justify-center sm:justify-start gap-2 items-center">
-            <div className="flex items-center gap-1 text-xs font-medium">
-              <Zap className="h-4 w-4 text-orange-500" />
-              Piche: <span className="font-bold text-base">{kitnaPiche}</span>
-            </div>
-             <div className="flex items-center gap-1 text-xs font-medium">
-                <Clock className="h-4 w-4 text-blue-500" />
-                Start: <span className="font-bold text-base">{gameState.startTime ? gameState.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</span>
-            </div>
-          </div>
+        <CardFooter className="flex flex-col sm:flex-row gap-2 justify-end items-center p-2 bg-muted/50">
           <div className="flex gap-2">
-            <Button onClick={handleStartTime} size="sm" variant="outline" disabled={!!gameState.startTime}><Clock className="mr-1 h-4 w-4" /> Start</Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button size="sm" variant="destructive"><RotateCcw className="mr-1 h-4 w-4" /> Reset</Button>
