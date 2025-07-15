@@ -27,8 +27,8 @@ const createInitialPlayers = (names: string[]): Player[] => {
     return names.map((name, index) => ({ key: `player${index+1}`, name }));
 }
 
-const createInitialRounds = (players: Player[]): RoundData[] => {
-  return Array(8).fill(null).map(() => {
+const createInitialRounds = (players: Player[], roundCount: number = 8): RoundData[] => {
+  return Array(roundCount).fill(null).map(() => {
     const roundData: RoundData = {
         bids: {},
         tricks: {},
