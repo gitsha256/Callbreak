@@ -12,7 +12,7 @@ interface ScoreDialogProps {
   roundIndex: number;
   currentBid: number | null;
   currentTricks: number | null;
-  onSave: (roundIndex: number, player: Player, bid: number, tricks: number) => void;
+  onSave: (roundIndex: number, playerKey: string, bid: number, tricks: number) => void;
   children: ReactNode;
 }
 
@@ -26,7 +26,7 @@ export function ScoreDialog({ player, roundIndex, currentBid, currentTricks, onS
     const tricksNum = parseInt(tricks, 10);
 
     if (!isNaN(bidNum) && !isNaN(tricksNum) && bidNum >= 1 && bidNum <= 8 && tricksNum >= 0 && tricksNum <= 8) {
-      onSave(roundIndex, player, bidNum, tricksNum);
+      onSave(roundIndex, player.key, bidNum, tricksNum);
       setIsOpen(false);
     } else {
       // Basic validation feedback
@@ -47,7 +47,7 @@ export function ScoreDialog({ player, roundIndex, currentBid, currentTricks, onS
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Round {roundIndex + 1}: {player}</DialogTitle>
+          <DialogTitle>Round {roundIndex + 1}: {player.name}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
