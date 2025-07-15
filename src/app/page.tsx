@@ -13,6 +13,7 @@ import { GameState, Player, SavedGame, initialGameState, RoundData } from '@/lib
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
 
 const getOrdinal = (n: number) => {
   const s = ["th", "st", "nd", "rd"];
@@ -25,6 +26,7 @@ export default function Home() {
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [editingCell, setEditingCell] = useState<{ type: 'player' | 'score'; key: string } | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const gameState = history[historyIndex];
@@ -217,7 +219,13 @@ export default function Home() {
   };
 
   const deleteHistory = () => {
-    localStorage.removeItem('callbreak-history');
+    if (deletePassword === 'tash') {
+        localStorage.removeItem('callbreak-history');
+        setDeletePassword('');
+        return true; // Indicate success
+    }
+    alert('Incorrect password.');
+    return false; // Indicate failure
   }
   
   const handleAddRound = () => {
@@ -287,11 +295,32 @@ export default function Home() {
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>This will permanently delete all your saved games. This action cannot be undone.</AlertDialogDescription>
+                      <AlertDialogDescription>
+                        This will permanently delete all your saved games. This action cannot be undone. Please enter the password to proceed.
+                      </AlertDialogDescription>
+                       <div className="space-y-2 pt-2">
+                         <Label htmlFor="delete-password">Password</Label>
+                         <Input
+                           id="delete-password"
+                           type="password"
+                           value={deletePassword}
+                           onChange={(e) => setDeletePassword(e.target.value)}
+                           placeholder="Enter password..."
+                         />
+                       </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={deleteHistory} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                      <AlertDialogCancel onClick={() => setDeletePassword('')}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={(e) => {
+                            if (!deleteHistory()) {
+                                e.preventDefault(); // Prevent dialog from closing on incorrect password
+                            }
+                        }}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
