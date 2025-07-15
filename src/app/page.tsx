@@ -146,35 +146,52 @@ export default function Home() {
     return totals;
   }, [gameState]);
 
-  const ranks = useMemo(() => {
-    const playerRanks: { [key: string]: number } = {};
-    if (!gameState) return playerRanks;
-
-    const sortedScores = gameState.players
-      .map(p => ({ key: p.key, score: totalScores[p.key] }))
+  const sortedPlayers = useMemo(() => {
+    if (!gameState) return [];
+    return gameState.players
+      .map(p => ({ ...p, score: totalScores[p.key] }))
       .sort((a, b) => b.score - a.score);
-    
-    if (sortedScores.length === 0) return playerRanks;
-
-    let rank = 1;
-    playerRanks[sortedScores[0].key] = rank;
-
-    for (let i = 1; i < sortedScores.length; i++) {
-        if (sortedScores[i].score < sortedScores[i - 1].score) {
-            rank = i + 1;
-        }
-        playerRanks[sortedScores[i].key] = rank;
-    }
-    return playerRanks;
   }, [totalScores, gameState]);
 
-  const kitnaPiche = useMemo(() => {
-    const scores = Object.values(totalScores);
-    if (scores.length < 2) return 0;
-    const maxScore = Math.max(...scores);
-    const minScore = Math.min(...scores);
-    return maxScore - minScore;
-  }, [totalScores]);
+  const ranks = useMemo(() => {
+    const playerRanks: { [key: string]: number } = {};
+    if (sortedPlayers.length === 0) return playerRanks;
+  
+    let rank = 1;
+    playerRanks[sortedPlayers[0].key] = rank;
+  
+    for (let i = 1; i < sortedPlayers.length; i++) {
+      if (sortedPlayers[i].score < sortedPlayers[i - 1].score) {
+        rank = i + 1;
+      }
+      playerRanks[sortedPlayers[i].key] = rank;
+    }
+    return playerRanks;
+  }, [sortedPlayers]);
+
+  const picheData = useMemo(() => {
+    const playersWithRank = sortedPlayers.map(p => ({ ...p, rank: ranks[p.key] }));
+    const thirdPlacePlayers = playersWithRank.filter(p => p.rank === 3);
+    const fourthPlacePlayers = playersWithRank.filter(p => p.rank === 4);
+
+    if (thirdPlacePlayers.length === 0 || fourthPlacePlayers.length === 0) {
+      return { piche: 0, clashText: "Piche: 0" };
+    }
+
+    const thirdPlaceScore = thirdPlacePlayers[0].score;
+    const fourthPlaceScore = fourthPlacePlayers[0].score;
+    const piche = thirdPlaceScore - fourthPlaceScore;
+
+    let clashText = "";
+    if (fourthPlacePlayers.length > 1) {
+      clashText = `Clash ${fourthPlacePlayers.map(p => p.name).join(' & ')}`;
+    } else {
+      clashText = `${fourthPlacePlayers[0].name} Piche:`;
+    }
+
+    return { piche, clashText };
+  }, [sortedPlayers, ranks]);
+
 
   const resetGame = () => {
     const freshState = initialGameState(gameState.players.map(p => p.name));
@@ -246,7 +263,7 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-1 text-sm font-medium">
                 <Zap className="h-4 w-4 text-orange-500" />
-                Piche: <span className="font-bold text-base">{kitnaPiche}</span>
+                {picheData.clashText} <span className="font-bold text-base">{picheData.clashText.startsWith("Clash") ? "" : picheData.piche}</span>
             </div>
           <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -441,3 +458,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
