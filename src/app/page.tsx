@@ -242,7 +242,7 @@ export default function Home() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[25px] w-[25px] text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">R</TableHead>
+                  <TableHead className="min-w-[25px] w-[25px] text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs border-r">R</TableHead>
                   {gameState.players.map((player, index) => (
                     <TableHead 
                       key={player.key} 
@@ -280,17 +280,23 @@ export default function Home() {
 
                   return (
                     <TableRow key={roundIndex}>
-                      <TableCell className="text-center font-semibold text-sm sticky left-0 bg-inherit z-10 p-1">{roundIndex + 1}</TableCell>
+                      <TableCell className="text-center font-semibold text-sm sticky left-0 bg-inherit z-10 p-1 border-r">{roundIndex + 1}</TableCell>
                       {gameState.players.map((player, playerIndex) => {
                         const cellKey = `${roundIndex}-${player.key}`;
                         const isEditing = editingCell?.type === 'score' && editingCell.key === cellKey;
+                        const score = round.scores[player.key];
+                        
+                        const scoreBgColor = score !== null && score !== undefined
+                            ? score > 0 ? 'bg-green-500/10 dark:bg-green-900/40' : score < 0 ? 'bg-red-500/10 dark:bg-red-900/40' : ''
+                            : '';
                         
                         return (
                           <TableCell 
                             key={player.key} 
                             className={cn(
                               "text-center p-0",
-                              "border-r"
+                              "border-r",
+                              scoreBgColor
                             )}
                             onClick={() => setEditingCell({ type: 'score', key: cellKey })}
                           >
@@ -318,14 +324,14 @@ export default function Home() {
                           </TableCell>
                         );
                       })}
-                      <TableCell className="text-center font-bold text-sm border-l p-1">{handSum > 0 ? handSum : ""}</TableCell>
+                      <TableCell className="text-center font-bold text-sm border-l p-1 bg-rainbow text-black">{handSum > 0 ? handSum : ""}</TableCell>
                     </TableRow>
                   )
                 })}
               </TableBody>
               <tfoot className="border-t-2 border-primary">
                 <TableRow>
-                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">Total</TableCell>
+                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs border-r">Total</TableCell>
                   {gameState.players.map((player, index) => (
                     <TableCell 
                         key={player.key} 
@@ -340,13 +346,13 @@ export default function Home() {
                   <TableCell className="border-l"></TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">Rank</TableCell>
+                  <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs border-r">Rank</TableCell>
                   {gameState.players.map((player, index) => {
                     const rank = ranks[player.key];
                     const rankColorClass = 
-                      rank === 1 ? 'bg-green-200 dark:bg-green-900/50' :
-                      rank === 3 ? 'bg-yellow-200 dark:bg-yellow-900/50' :
-                      rank === 4 ? 'bg-red-200 dark:bg-red-900/50' :
+                      rank === 1 ? 'bg-green-300 dark:bg-green-900/50' :
+                      rank === 3 ? 'bg-yellow-300 dark:bg-yellow-900/50' :
+                      rank === 4 ? 'bg-red-300 dark:bg-red-900/50' :
                       '';
                     return (
                       <TableCell 
