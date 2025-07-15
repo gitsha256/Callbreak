@@ -10,7 +10,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { LoadGameDialog } from '@/components/load-game-dialog';
 import { EditPlayersDialog } from '@/components/edit-players-dialog'; // Kept for accessibility
-import { useToast } from "@/hooks/use-toast"
 import { GameState, Player, SavedGame, initialGameState } from '@/lib/types';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Input } from '@/components/ui/input';
@@ -18,7 +17,6 @@ import { Input } from '@/components/ui/input';
 export default function Home() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [isMounted, setIsMounted] = useState(false);
-  const { toast } = useToast();
   const [editingCell, setEditingCell] = useState<{ type: 'player' | 'score'; key: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +51,6 @@ export default function Home() {
 
   const handlePlayerNameChange = (playerKey: string, newName: string) => {
     if (!newName.trim()) {
-        toast({ variant: "destructive", title: "Invalid Name", description: "Player name cannot be empty." });
         setEditingCell(null);
         return;
     }
@@ -62,7 +59,6 @@ export default function Home() {
     );
     setGameState({ ...gameState, players: newPlayers });
     setEditingCell(null);
-    toast({ title: "Player Renamed", description: `Player name updated to ${newName}.` });
   };
   
   const handleScoreChange = (roundIndex: number, playerKey: string, newScore: number) => {
@@ -130,13 +126,11 @@ export default function Home() {
   const resetGame = () => {
     const freshState = initialGameState(gameState.players.map(p => p.name));
     setGameState(freshState);
-    toast({ title: "Game Reset", description: "The scoreboard has been cleared." });
   };
   
   const handleStartTime = () => {
     if (!gameState.startTime) {
       setGameState({ ...gameState, startTime: new Date() });
-      toast({ title: "Game Started", description: `The timer has begun.` });
     }
   };
   
@@ -146,9 +140,8 @@ export default function Home() {
       const newSave: SavedGame = { id: Date.now(), timestamp: new Date(), gameState };
       savedGames.unshift(newSave);
       localStorage.setItem('callbreak-history', JSON.stringify(savedGames.slice(0, 50)));
-      toast({ title: "Game Saved", description: "Your progress has been added to history." });
     } catch (error) {
-      toast({ variant: "destructive", title: "Save Failed", description: "Could not save game to history." });
+      console.error("Could not save game to history.", error);
     }
   };
   
@@ -159,12 +152,10 @@ export default function Home() {
     };
     setGameState(revivedGameState);
     setEditingCell(null);
-    toast({ title: "Game Loaded", description: "Your progress has been restored." });
   };
 
   const deleteHistory = () => {
     localStorage.removeItem('callbreak-history');
-    toast({ title: "History Deleted", description: "All saved games have been cleared." });
   }
 
   const handleLegacyPlayerEdit = (newPlayers: Player[]) => {
@@ -184,7 +175,6 @@ export default function Home() {
     });
 
     setGameState({ ...gameState, players: newPlayers, rounds: newRounds, });
-    toast({ title: "Players Updated", description: "Player names have been changed." });
   };
 
   if (!isMounted) {
@@ -350,5 +340,3 @@ export default function Home() {
     </main>
   );
 }
-
-    
