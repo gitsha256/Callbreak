@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -41,7 +42,7 @@ export function LoadGameDialog({ onGameLoad }: LoadGameDialogProps) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-            <Upload className="mr-2 h-4 w-4" /> Load Game
+            <Upload className="mr-2 h-4 w-4" /> Saved Games
         </DropdownMenuItem>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

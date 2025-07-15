@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { MoreVertical, Save, Trash2, Zap, RotateCcw, PlusCircle, Undo, Redo } from 'lucide-react';
+import { MoreVertical, Save, Trash2, Zap, RotateCcw, PlusCircle, Undo, Redo, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -258,7 +258,6 @@ export default function Home() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleAddRound}><PlusCircle className="mr-2 h-4 w-4" /> Add Round</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={saveGame}><Save className="mr-2 h-4 w-4" /> Save to History</DropdownMenuItem>
                 <LoadGameDialog onGameLoad={loadGame} />
                 <DropdownMenuSeparator />
                  <AlertDialog>
