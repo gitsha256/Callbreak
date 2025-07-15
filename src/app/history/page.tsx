@@ -54,7 +54,7 @@ export default function HistoryPage() {
                     className="justify-start"
                     onClick={() => handleViewGame(game.id)}
                   >
-                    Game from {new Date(game.timestamp).toLocaleString()}
+                    Tash on {new Date(game.timestamp).toLocaleString()}
                   </Button>
                 ))}
               </div>
