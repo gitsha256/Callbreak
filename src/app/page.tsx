@@ -193,6 +193,14 @@ export default function Home() {
   if (!isMounted) {
     return null;
   }
+  
+  const handGradientClasses = [
+    'bg-gradient-shimmer-1',
+    'bg-gradient-shimmer-2',
+    'bg-gradient-shimmer-3',
+    'bg-gradient-shimmer-4',
+    'bg-gradient-shimmer-5',
+  ];
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
@@ -287,7 +295,7 @@ export default function Home() {
                         const score = round.scores[player.key];
                         
                         const scoreBgColor = score !== null && score !== undefined
-                            ? score > 0 ? 'bg-green-500/10 dark:bg-green-900/40' : score < 0 ? 'bg-red-500/10 dark:bg-red-900/40' : ''
+                            ? score > 0 ? 'bg-green-500/30 dark:bg-green-800/50' : score < 0 ? 'bg-red-500/30 dark:bg-red-800/50' : ''
                             : '';
                         
                         return (
@@ -324,7 +332,9 @@ export default function Home() {
                           </TableCell>
                         );
                       })}
-                      <TableCell className="text-center font-bold text-sm border-l p-1 bg-rainbow text-black">{handSum > 0 ? handSum : ""}</TableCell>
+                      <TableCell className={cn("text-center font-bold text-sm border-l p-1 text-black", handGradientClasses[roundIndex % handGradientClasses.length])}>
+                        {handSum > 0 ? handSum : ""}
+                      </TableCell>
                     </TableRow>
                   )
                 })}
@@ -350,9 +360,9 @@ export default function Home() {
                   {gameState.players.map((player, index) => {
                     const rank = ranks[player.key];
                     const rankColorClass = 
-                      rank === 1 ? 'bg-green-300 dark:bg-green-900/50' :
-                      rank === 3 ? 'bg-yellow-300 dark:bg-yellow-900/50' :
-                      rank === 4 ? 'bg-red-300 dark:bg-red-900/50' :
+                      rank === 1 ? 'bg-green-300 dark:bg-green-800' :
+                      rank === 3 ? 'bg-yellow-300 dark:bg-yellow-800' :
+                      rank === 4 ? 'bg-red-300 dark:bg-red-800' :
                       '';
                     return (
                       <TableCell 
@@ -396,5 +406,3 @@ export default function Home() {
     </main>
   );
 }
-
-    

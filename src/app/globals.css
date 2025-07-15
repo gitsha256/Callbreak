@@ -88,14 +88,38 @@ body {
 }
 
 @layer utilities {
-  @keyframes rainbow {
-    0% { background-position: 0% 50% }
-    50% { background-position: 100% 50% }
-    100% { background-position: 0% 50% }
+  @keyframes shimmer {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
   }
-  .bg-rainbow {
-    background: linear-gradient(90deg, #ffadad, #ffd6a5, #fdffb6, #caffbf, #9bf6ff, #a0c4ff, #bdb2ff);
-    background-size: 200% 200%;
-    animation: rainbow 10s ease infinite;
+
+  .bg-gradient-shimmer-1 {
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: shimmer 15s ease infinite;
+  }
+  .bg-gradient-shimmer-2 {
+    background: linear-gradient(-45deg, #f6d365, #fda085, #f6d365, #fda085);
+    background-size: 400% 400%;
+    animation: shimmer 15s ease infinite;
+  }
+  .bg-gradient-shimmer-3 {
+    background: linear-gradient(-45deg, #d4fc79, #96e6a1, #d4fc79, #96e6a1);
+    background-size: 400% 400%;
+    animation: shimmer 15s ease infinite;
+  }
+  .bg-gradient-shimmer-4 {
+    background: linear-gradient(-45deg, #a1c4fd, #c2e9fb, #a1c4fd, #c2e9fb);
+    background-size: 400% 400%;
+    animation: shimmer 15s ease infinite;
+  }
+  .bg-gradient-shimmer-5 {
+    background: linear-gradient(-45deg, #ff9a9e, #fecfef, #ff9a9e, #fecfef);
+    background-size: 400% 400%;
+    animation: shimmer 15s ease infinite;
   }
 }
