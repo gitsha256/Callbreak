@@ -127,10 +127,15 @@ export default function GameViewerPage() {
     <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
       <Card className="w-full max-w-4xl shadow-2xl">
         <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
-          <Button onClick={() => router.push('/')} variant="ghost" size="icon"><ArrowLeft /></Button>
-          <CardTitle>
-            Game from {savedGame ? new Date(savedGame.timestamp).toLocaleString() : ''}
-          </CardTitle>
+          <Button onClick={() => router.push('/history')} variant="ghost" size="icon"><ArrowLeft /></Button>
+          <div className="text-center">
+            <CardTitle className="text-lg sm:text-xl">
+                Game Summary
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+                Saved on {savedGame ? new Date(savedGame.timestamp).toLocaleString() : ''}
+            </p>
+          </div>
           <div className="w-10"></div>
         </CardHeader>
         <CardContent className="p-0">
@@ -242,4 +247,3 @@ export default function GameViewerPage() {
     </main>
   );
 }
-

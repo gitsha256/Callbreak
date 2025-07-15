@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, Save, Trash2, Drumstick, RotateCcw, PlusCircle, Undo, Redo, Upload } from 'lucide-react';
+import { MoreVertical, Save, Trash2, Drumstick, RotateCcw, PlusCircle, Undo, Redo, Upload, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -33,9 +33,9 @@ export default function Home() {
   const gameState = history[historyIndex];
 
   const updateGameState = (updater: (prevState: GameState) => GameState) => {
-    const currentGameState = history[historyIndex];
-    const newGameState = updater(currentGameState);
-    const newHistory = [...history.slice(0, historyIndex + 1), newGameState];
+    const newHistory = [...history.slice(0, historyIndex + 1)];
+    const newGameState = updater(newHistory[historyIndex]);
+    newHistory.push(newGameState);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
@@ -474,13 +474,13 @@ export default function Home() {
             </Table>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row gap-2 justify-end items-center p-2 bg-muted/50">
-           {gameState.startTime && (
-                <div className="text-xs text-muted-foreground mr-auto">
-                    Game started: {new Date(gameState.startTime).toLocaleString()}
-                </div>
+        <CardFooter className="flex flex-wrap gap-2 justify-end items-center p-2 bg-muted/50">
+            {gameState.startTime && (
+                 <Button size="sm" variant="outline" className="mr-auto cursor-default hover:bg-transparent">
+                    <Clock className="mr-2 h-4 w-4" />
+                    {new Date(gameState.startTime).toLocaleTimeString()}
+                </Button>
             )}
-          <div className="flex gap-2">
             <Button size="sm" variant="default" onClick={saveGame}><Save className="mr-1 h-4 w-4" /> Save</Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -497,7 +497,6 @@ export default function Home() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </div>
         </CardFooter>
       </Card>
     </main>
