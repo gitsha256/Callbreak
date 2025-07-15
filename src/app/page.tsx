@@ -266,7 +266,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
-      <h1 className="text-4xl font-bold tracking-tight mb-4 text-gradient-gold">
+      <h1 className="text-3xl font-bold tracking-tight mb-4 text-gradient-gold">
         TASH PREMIER LEAGUE
       </h1>
       <Card className="w-full max-w-4xl shadow-2xl">
@@ -493,3 +493,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
