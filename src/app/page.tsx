@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { MoreVertical, Save, Trash2, Coins, RotateCcw, PlusCircle, Undo, Redo, Upload } from 'lucide-react';
+import { MoreVertical, Save, Trash2, Drumstick, RotateCcw, PlusCircle, Undo, Redo, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -260,7 +260,7 @@ export default function Home() {
                  <Button variant="ghost" size="icon" onClick={redo} disabled={historyIndex === history.length - 1}><Redo /></Button>
             </div>
             <div className="flex items-center gap-1 text-sm font-medium">
-                <Coins className="h-4 w-4 text-orange-500" />
+                <Drumstick className="h-4 w-4 text-orange-500" />
                 <span className="font-bold text-base">{picheData.displayText}</span>
             </div>
           <div className="flex items-center gap-2">
@@ -456,5 +456,7 @@ export default function Home() {
     </main>
   );
 }
+
+    
 
     
