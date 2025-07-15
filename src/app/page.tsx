@@ -224,7 +224,7 @@ export default function Home() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[30px] w-[30px] text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">Rnd</TableHead>
+                  <TableHead className="min-w-[25px] w-[25px] text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">R</TableHead>
                   {gameState.players.map((player, index) => (
                     <TableHead 
                       key={player.key} 
