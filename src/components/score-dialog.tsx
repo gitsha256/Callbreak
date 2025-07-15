@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,14 @@ export function ScoreDialog({ player, roundIndex, currentBid, currentTricks, onS
   const [bid, setBid] = useState(currentBid?.toString() || '');
   const [tricks, setTricks] = useState(currentTricks?.toString() || '');
   const [isOpen, setIsOpen] = useState(false);
+  const bidInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Focus the first input when the dialog opens
+      setTimeout(() => bidInputRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
 
   const handleSave = () => {
     const bidNum = parseInt(bid, 10);
@@ -42,10 +51,16 @@ export function ScoreDialog({ player, roundIndex, currentBid, currentTricks, onS
     setIsOpen(open);
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle>Round {roundIndex + 1}: {player.name}</DialogTitle>
         </DialogHeader>
@@ -53,6 +68,7 @@ export function ScoreDialog({ player, roundIndex, currentBid, currentTricks, onS
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="bid" className="text-right">Bid</Label>
             <Input
+              ref={bidInputRef}
               id="bid"
               type="number"
               value={bid}
@@ -87,3 +103,5 @@ export function ScoreDialog({ player, roundIndex, currentBid, currentTricks, onS
     </Dialog>
   );
 }
+
+    

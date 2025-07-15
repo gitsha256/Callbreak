@@ -1,25 +1,26 @@
+
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { MoreVertical, Save, Upload, Trash2, Clock, Zap, RotateCcw, Pencil, Moon, Sun } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { MoreVertical, Save, Upload, Trash2, Clock, Zap, RotateCcw, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { ScoreDialog } from '@/components/score-dialog';
 import { LoadGameDialog } from '@/components/load-game-dialog';
-import { EditPlayersDialog } from '@/components/edit-players-dialog';
+import { EditPlayersDialog } from '@/components/edit-players-dialog'; // Kept for accessibility
 import { useToast } from "@/hooks/use-toast"
 import { GameState, Player, SavedGame, initialGameState } from '@/lib/types';
-import { useTheme } from 'next-themes';
 import { ThemeToggle } from '@/components/theme-toggle';
-
+import { Input } from '@/components/ui/input';
 
 export default function Home() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
+  const [editingCell, setEditingCell] = useState<{ type: 'player' | 'score'; key: string } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -27,7 +28,6 @@ export default function Home() {
     if (savedState) {
       try {
         const loadedGameState = JSON.parse(savedState);
-        // Dates need to be reconstructed from strings
         const revivedGameState = {
             ...loadedGameState,
             startTime: loadedGameState.startTime ? new Date(loadedGameState.startTime) : null,
@@ -45,49 +45,58 @@ export default function Home() {
     }
   }, [gameState, isMounted]);
 
-  const handleScoreChange = (roundIndex: number, playerKey: string, bid: number, tricks: number) => {
+  useEffect(() => {
+    if (editingCell && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [editingCell]);
+
+  const handlePlayerNameChange = (playerKey: string, newName: string) => {
+    if (!newName.trim()) {
+        toast({ variant: "destructive", title: "Invalid Name", description: "Player name cannot be empty." });
+        setEditingCell(null);
+        return;
+    }
+    const newPlayers = gameState.players.map(p =>
+        p.key === playerKey ? { ...p, name: newName } : p
+    );
+    setGameState({ ...gameState, players: newPlayers });
+    setEditingCell(null);
+    toast({ title: "Player Renamed", description: `Player name updated to ${newName}.` });
+  };
+  
+  const handleScoreChange = (roundIndex: number, playerKey: string, newScore: number) => {
+    if (isNaN(newScore)) {
+        setEditingCell(null);
+        return;
+    }
     const newRounds = [...gameState.rounds];
     const round = newRounds[roundIndex];
 
-    round.bids[playerKey] = bid;
-    round.tricks[playerKey] = tricks;
-
-    let score = 0;
-    if (tricks < bid) {
-      score = -bid;
-    } else {
-      score = bid + (tricks - bid) * 0.1;
-    }
-    round.scores[playerKey] = parseFloat(score.toFixed(1));
+    // Simple update: just change the score, bid/tricks become invalid
+    round.scores[playerKey] = parseFloat(newScore.toFixed(1));
+    round.bids[playerKey] = null;
+    round.tricks[playerKey] = null;
 
     setGameState({ ...gameState, rounds: newRounds });
+    setEditingCell(null);
   };
 
-  const handlePlayerNameChange = (newPlayers: Player[]) => {
-     // Create a new game state, preserving scores under new player keys
-    const newRounds = gameState.rounds.map(round => {
-        const newBids: { [key: string]: number | null } = {};
-        const newTricks: { [key: string]: number | null } = {};
-        const newScores: { [key: string]: number | null } = {};
-
-        gameState.players.forEach((oldPlayer, index) => {
-            const newPlayer = newPlayers[index];
-            newBids[newPlayer.key] = round.bids[oldPlayer.key] ?? null;
-            newTricks[newPlayer.key] = round.tricks[oldPlayer.key] ?? null;
-            newScores[newPlayer.key] = round.scores[oldPlayer.key] ?? null;
-        });
-
-        return { bids: newBids, tricks: newTricks, scores: newScores };
-    });
-
-    setGameState({
-        ...gameState,
-        players: newPlayers,
-        rounds: newRounds,
-    });
-    toast({ title: "Players Updated", description: "Player names have been changed." });
+  const handlePlayerNameSaveOnEnter = (e: React.KeyboardEvent<HTMLInputElement>, playerKey: string) => {
+    if (e.key === 'Enter') {
+        handlePlayerNameChange(playerKey, e.currentTarget.value);
+    } else if (e.key === 'Escape') {
+        setEditingCell(null);
+    }
   };
 
+  const handleScoreSaveOnEnter = (e: React.KeyboardEvent<HTMLInputElement>, roundIndex: number, playerKey: string) => {
+    if (e.key === 'Enter') {
+        handleScoreChange(roundIndex, playerKey, parseFloat(e.currentTarget.value));
+    } else if (e.key === 'Escape') {
+        setEditingCell(null);
+    }
+  };
 
   const totalScores = useMemo(() => {
     const totals: { [key: string]: number } = {};
@@ -136,7 +145,7 @@ export default function Home() {
       const savedGames: SavedGame[] = JSON.parse(localStorage.getItem('callbreak-history') || '[]');
       const newSave: SavedGame = { id: Date.now(), timestamp: new Date(), gameState };
       savedGames.unshift(newSave);
-      localStorage.setItem('callbreak-history', JSON.stringify(savedGames.slice(0, 50))); // Limit history
+      localStorage.setItem('callbreak-history', JSON.stringify(savedGames.slice(0, 50)));
       toast({ title: "Game Saved", description: "Your progress has been added to history." });
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: "Could not save game to history." });
@@ -144,12 +153,12 @@ export default function Home() {
   };
   
   const loadGame = (loadedGameState: GameState) => {
-    // Dates need to be reconstructed from strings
     const revivedGameState = {
         ...loadedGameState,
         startTime: loadedGameState.startTime ? new Date(loadedGameState.startTime) : null,
     };
     setGameState(revivedGameState);
+    setEditingCell(null);
     toast({ title: "Game Loaded", description: "Your progress has been restored." });
   };
 
@@ -158,8 +167,28 @@ export default function Home() {
     toast({ title: "History Deleted", description: "All saved games have been cleared." });
   }
 
+  const handleLegacyPlayerEdit = (newPlayers: Player[]) => {
+    const newRounds = gameState.rounds.map(round => {
+        const newBids: { [key: string]: number | null } = {};
+        const newTricks: { [key: string]: number | null } = {};
+        const newScores: { [key: string]: number | null } = {};
+
+        gameState.players.forEach((oldPlayer, index) => {
+            const newPlayer = newPlayers[index];
+            newBids[newPlayer.key] = round.bids[oldPlayer.key] ?? null;
+            newTricks[newPlayer.key] = round.tricks[oldPlayer.key] ?? null;
+            newScores[newPlayer.key] = round.scores[oldPlayer.key] ?? null;
+        });
+
+        return { bids: newBids, tricks: newTricks, scores: newScores };
+    });
+
+    setGameState({ ...gameState, players: newPlayers, rounds: newRounds, });
+    toast({ title: "Players Updated", description: "Player names have been changed." });
+  };
+
   if (!isMounted) {
-    return null; // Or a loading spinner
+    return null;
   }
 
   return (
@@ -176,7 +205,7 @@ export default function Home() {
                 <Button variant="ghost" size="icon"><MoreVertical /></Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <EditPlayersDialog players={gameState.players} onSave={handlePlayerNameChange} />
+                <EditPlayersDialog players={gameState.players} onSave={handleLegacyPlayerEdit} />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={saveGame}><Save className="mr-2 h-4 w-4" /> Save to History</DropdownMenuItem>
                 <LoadGameDialog onGameLoad={loadGame} />
@@ -207,7 +236,25 @@ export default function Home() {
                 <TableRow>
                   <TableHead className="min-w-[30px] w-[30px] text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">Rnd</TableHead>
                   {gameState.players.map(player => (
-                    <TableHead key={player.key} className="min-w-[50px] w-[50px] text-center font-bold truncate px-1 text-xs">{player.name}</TableHead>
+                    <TableHead 
+                      key={player.key} 
+                      className="min-w-[50px] w-[50px] text-center font-bold truncate px-1 text-xs cursor-pointer hover:bg-primary/10"
+                      onClick={() => setEditingCell({ type: 'player', key: player.key })}
+                    >
+                      {editingCell?.type === 'player' && editingCell.key === player.key ? (
+                        <Input
+                          ref={inputRef}
+                          type="text"
+                          defaultValue={player.name}
+                          onBlur={(e) => handlePlayerNameChange(player.key, e.target.value)}
+                          onKeyDown={(e) => handlePlayerNameSaveOnEnter(e, player.key)}
+                          className="h-6 text-center text-xs p-1"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        player.name
+                      )}
+                    </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
@@ -215,24 +262,40 @@ export default function Home() {
                 {gameState.rounds.map((round, roundIndex) => (
                   <TableRow key={roundIndex}>
                     <TableCell className="text-center font-semibold text-sm sticky left-0 bg-inherit z-10 p-1">{roundIndex + 1}</TableCell>
-                    {gameState.players.map(player => (
-                      <TableCell key={player.key} className="text-center p-0">
-                        <ScoreDialog
-                          player={player}
-                          roundIndex={roundIndex}
-                          currentBid={round.bids[player.key]}
-                          currentTricks={round.tricks[player.key]}
-                          onSave={handleScoreChange}
+                    {gameState.players.map(player => {
+                      const cellKey = `${roundIndex}-${player.key}`;
+                      const isEditing = editingCell?.type === 'score' && editingCell.key === cellKey;
+                      
+                      return (
+                        <TableCell 
+                          key={player.key} 
+                          className="text-center p-0"
+                          onClick={() => setEditingCell({ type: 'score', key: cellKey })}
                         >
                           <div className="p-1 rounded-md hover:bg-primary/10 cursor-pointer transition-colors w-full h-full min-h-[36px] flex flex-col justify-center">
-                            <div className="text-sm font-bold">{round.scores[player.key]?.toFixed(1) || "-"}</div>
-                            <div className="text-[10px] text-muted-foreground">
-                              {round.bids[player.key] !== null ? `${round.bids[player.key]}/${round.tricks[player.key]}` : ""}
-                            </div>
+                            {isEditing ? (
+                               <Input
+                                 ref={inputRef}
+                                 type="number"
+                                 step="0.1"
+                                 defaultValue={round.scores[player.key]?.toFixed(1) || ''}
+                                 onBlur={(e) => handleScoreChange(roundIndex, player.key, parseFloat(e.target.value))}
+                                 onKeyDown={(e) => handleScoreSaveOnEnter(e, roundIndex, player.key)}
+                                 className="h-6 text-center text-xs p-1"
+                                 onClick={(e) => e.stopPropagation()}
+                               />
+                            ) : (
+                                <>
+                                    <div className="text-sm font-bold">{round.scores[player.key]?.toFixed(1) || "-"}</div>
+                                    <div className="text-[10px] text-muted-foreground">
+                                    {round.bids[player.key] !== null ? `${round.bids[player.key]}/${round.tricks[player.key]}` : ""}
+                                    </div>
+                                </>
+                            )}
                           </div>
-                        </ScoreDialog>
-                      </TableCell>
-                    ))}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                 ))}
               </TableBody>
@@ -287,3 +350,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
