@@ -239,6 +239,11 @@ export default function Home() {
     });
   };
 
+  const handleClearAndSave = () => {
+    saveGame();
+    resetGame();
+  }
+
   if (!isMounted || !gameState) {
     return null;
   }
@@ -442,11 +447,11 @@ export default function Home() {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Clear Game?</AlertDialogTitle>
-                  <AlertDialogDescription>Are you sure you want to clear all scores to zero? This action cannot be undone.</AlertDialogDescription>
+                  <AlertDialogDescription>This will save the current game and clear all scores to zero. This action cannot be undone.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={resetGame}>Clear</AlertDialogAction>
+                  <AlertDialogAction onClick={handleClearAndSave}>Clear</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -456,7 +461,3 @@ export default function Home() {
     </main>
   );
 }
-
-    
-
-    
