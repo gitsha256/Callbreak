@@ -33,9 +33,9 @@ export default function Home() {
   const gameState = history[historyIndex];
 
   const updateGameState = (updater: (prevState: GameState) => GameState) => {
-    const newHistory = [...history.slice(0, historyIndex + 1)];
-    const newGameState = updater(newHistory[historyIndex]);
-    newHistory.push(newGameState);
+    const currentState = history[historyIndex];
+    const newGameState = updater(currentState);
+    const newHistory = [...history.slice(0, historyIndex + 1), newGameState];
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
@@ -476,9 +476,9 @@ export default function Home() {
         </CardContent>
         <CardFooter className="flex flex-wrap gap-2 justify-end items-center p-2 bg-muted/50">
             {gameState.startTime && (
-                 <Button size="sm" variant="outline" className="mr-auto cursor-default hover:bg-transparent">
-                    <Clock className="mr-2 h-4 w-4" />
-                    {new Date(gameState.startTime).toLocaleTimeString()}
+                 <Button size="sm" variant="outline" className="mr-auto cursor-default hover:bg-transparent h-8 px-2 text-xs">
+                    <Clock className="mr-2 h-3 w-3" />
+                    {new Date(gameState.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Button>
             )}
             <Button size="sm" variant="default" onClick={saveGame}><Save className="mr-1 h-4 w-4" /> Save</Button>
