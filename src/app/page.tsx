@@ -13,6 +13,7 @@ import { EditPlayersDialog } from '@/components/edit-players-dialog';
 import { GameState, Player, SavedGame, initialGameState } from '@/lib/types';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
@@ -70,7 +71,7 @@ export default function Home() {
     const round = newRounds[roundIndex];
 
     // Simple update: just change the score, bid/tricks become invalid
-    round.scores[playerKey] = parseFloat(newScore.toFixed(1));
+    round.scores[playerKey] = Math.round(newScore);
     round.bids[playerKey] = null;
     round.tricks[playerKey] = null;
 
@@ -124,7 +125,7 @@ export default function Home() {
     if (scores.length < 2) return 0;
     const maxScore = Math.max(...scores);
     const minScore = Math.min(...scores);
-    return parseFloat((maxScore - minScore).toFixed(1));
+    return maxScore - minScore;
   }, [totalScores]);
 
   const resetGame = () => {
@@ -228,10 +229,13 @@ export default function Home() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[30px] w-[30px] text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">Rnd</TableHead>
-                  {gameState.players.map(player => (
+                  {gameState.players.map((player, index) => (
                     <TableHead 
                       key={player.key} 
-                      className="min-w-[50px] w-[50px] text-center font-bold truncate px-1 text-xs cursor-pointer hover:bg-primary/10"
+                      className={cn(
+                          "min-w-[50px] w-[50px] text-center font-bold truncate px-1 text-xs cursor-pointer hover:bg-primary/10",
+                          index < gameState.players.length -1 && "border-r"
+                      )}
                       onClick={() => setEditingCell({ type: 'player', key: player.key })}
                     >
                       {editingCell?.type === 'player' && editingCell.key === player.key ? (
@@ -255,14 +259,17 @@ export default function Home() {
                 {gameState.rounds.map((round, roundIndex) => (
                   <TableRow key={roundIndex}>
                     <TableCell className="text-center font-semibold text-sm sticky left-0 bg-inherit z-10 p-1">{roundIndex + 1}</TableCell>
-                    {gameState.players.map(player => {
+                    {gameState.players.map((player, playerIndex) => {
                       const cellKey = `${roundIndex}-${player.key}`;
                       const isEditing = editingCell?.type === 'score' && editingCell.key === cellKey;
                       
                       return (
                         <TableCell 
                           key={player.key} 
-                          className="text-center p-0"
+                          className={cn(
+                            "text-center p-0",
+                            playerIndex < gameState.players.length - 1 && "border-r"
+                          )}
                           onClick={() => setEditingCell({ type: 'score', key: cellKey })}
                         >
                           <div className="p-1 rounded-md hover:bg-primary/10 cursor-pointer transition-colors w-full h-full min-h-[36px] flex flex-col justify-center">
@@ -270,16 +277,16 @@ export default function Home() {
                                <Input
                                  ref={inputRef}
                                  type="number"
-                                 step="0.1"
-                                 defaultValue={round.scores[player.key]?.toFixed(1) || ''}
-                                 onBlur={(e) => handleScoreChange(roundIndex, player.key, parseFloat(e.target.value))}
+                                 step="1"
+                                 defaultValue={round.scores[player.key]?.toString() || ''}
+                                 onBlur={(e) => handleScoreChange(roundIndex, player.key, parseInt(e.target.value, 10))}
                                  onKeyDown={(e) => handleScoreSaveOnEnter(e, roundIndex, player.key)}
                                  className="h-6 text-center text-xs p-1"
                                  onClick={(e) => e.stopPropagation()}
                                />
                             ) : (
                                 <>
-                                    <div className="text-sm font-bold">{round.scores[player.key]?.toFixed(1) || "-"}</div>
+                                    <div className="text-sm font-bold">{round.scores[player.key] ?? "-"}</div>
                                     <div className="text-[10px] text-muted-foreground">
                                     {round.bids[player.key] !== null ? `${round.bids[player.key]}/${round.tricks[player.key]}` : ""}
                                     </div>
@@ -295,14 +302,30 @@ export default function Home() {
               <tfoot className="border-t-2 border-primary">
                 <TableRow>
                   <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">Total</TableCell>
-                  {gameState.players.map(player => (
-                    <TableCell key={player.key} className="text-center font-bold text-base text-primary p-1">{totalScores[player.key].toFixed(1)}</TableCell>
+                  {gameState.players.map((player, index) => (
+                    <TableCell 
+                        key={player.key} 
+                        className={cn(
+                            "text-center font-bold text-base text-primary p-1",
+                            index < gameState.players.length - 1 && "border-r"
+                        )}
+                    >
+                        {totalScores[player.key]}
+                    </TableCell>
                   ))}
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs">Rank</TableCell>
-                  {gameState.players.map(player => (
-                    <TableCell key={player.key} className="text-center font-bold text-base text-accent p-1">{ranks[player.key]}</TableCell>
+                  {gameState.players.map((player, index) => (
+                    <TableCell 
+                        key={player.key} 
+                        className={cn(
+                            "text-center font-bold text-base text-accent p-1",
+                            index < gameState.players.length - 1 && "border-r"
+                        )}
+                    >
+                        {ranks[player.key]}
+                    </TableCell>
                   ))}
                 </TableRow>
               </tfoot>
@@ -332,3 +355,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
