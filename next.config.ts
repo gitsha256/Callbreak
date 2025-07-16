@@ -27,6 +27,9 @@ const nextConfig = withPWA({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
+
+  // ✅ This line prevents Workbox from trying to cache non-existent files
+  buildExcludes: [/app-build-manifest\.json$/, /_buildManifest\.js$/, /_ssgManifest\.js$/],
 })(baseConfig);
 
 export default nextConfig;
