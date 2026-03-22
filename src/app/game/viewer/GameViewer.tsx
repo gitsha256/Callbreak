@@ -211,7 +211,7 @@ export default function GameViewerPage() {
                     const totalScore = totalScores[player.key];
                     return (
                       <TableCell key={player.key} className="text-center font-bold text-base text-primary p-1 border-r">
-                        {Math.abs(totalScore) >= 10 ? totalScore : ''}
+                        {totalScore === 0 || Math.abs(totalScore) >= 10 ? totalScore : ''}
                       </TableCell>
                     );
                   })}

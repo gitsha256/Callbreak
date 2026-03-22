@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ClientLayout from "@/components/ClientLayout";
-import Script from "next/script"; // ✅ Add Script import
 
 export const metadata: Metadata = {
   title: "Mama Mansion",
@@ -25,17 +24,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased">
-        {/* ✅ Inject Adsterra Script */}
-        <Script
-          id="adsterra-script"
-          strategy="afterInteractive"
-          data-cfasync="false"
-          src="//pl27180240.profitableratecpm.com/9d7ed4e00d722a8ad01ad9a90eb17747/invoke.js"
-        />
-        {/* ✅ Container to render the ad */}
-        <div id="container-9d7ed4e00d722a8ad01ad9a90eb17747" style={{ textAlign: "center" }}></div>
 
+      <body className="font-body antialiased">
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

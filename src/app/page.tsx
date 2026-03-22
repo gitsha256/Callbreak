@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, Save, Trash2, Drumstick, RotateCcw, PlusCircle, Undo, Redo, Upload, Clock } from 'lucide-react';
+import { MoreVertical, Save, Trash2, Circle, RotateCcw, PlusCircle, Undo, Redo, Upload, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -179,23 +179,35 @@ export default function Home() {
   }, [sortedPlayers]);
 
   const picheData = useMemo(() => {
-    const playersWithRank = sortedPlayers.map(p => ({ ...p, rank: ranks[p.key] }));
-    const thirdPlacePlayers = playersWithRank.filter(p => p.rank === 3);
-    const fourthPlacePlayers = playersWithRank.filter(p => p.rank === 4);
-  
-    if (fourthPlacePlayers.length > 1) {
-      return { displayText: "Clash" };
-    }
-  
-    if (thirdPlacePlayers.length === 0 || fourthPlacePlayers.length === 0) {
+    if (sortedPlayers.length < 4) {
       return { displayText: "Piche: 0" };
     }
+
+    // Get unique score values and sort them
+    const uniqueScores = Array.from(new Set(sortedPlayers.map(p => p.score))).sort((a, b) => b - a);
     
-    const thirdPlaceScore = thirdPlacePlayers[0].score;
-    const fourthPlaceScore = fourthPlacePlayers[0].score;
-    const piche = thirdPlaceScore - fourthPlaceScore;
-  
-    return { displayText: `${fourthPlacePlayers[0].name}: ${piche} Piche` };
+    // If there are less than 2 unique scores, piche is 0
+    if (uniqueScores.length < 2) {
+      return { displayText: "Piche: 0" };
+    }
+
+    const secondLowestScore = uniqueScores[uniqueScores.length - 2];
+    const lowestScore = uniqueScores[uniqueScores.length - 1];
+    const piche = secondLowestScore - lowestScore;
+
+    // Get players at each position
+    const lowestScorePlayers = sortedPlayers.filter(p => p.score === lowestScore);
+    const secondLowestScorePlayers = sortedPlayers.filter(p => p.score === secondLowestScore);
+    
+    // If 2 or more players are tied at 3rd place (lowest score), show "draw: Player1, Player2: X"
+    if (lowestScorePlayers.length > 1) {
+      const playerNames = lowestScorePlayers.map(p => p.name).join('&');
+      return { displayText: `DRAW: ${playerNames}: ${piche} piche 2nd se` };
+    }
+    
+    // Show piche between 4th place player and 3rd place player(s)
+    const thirdPlaceNames = secondLowestScorePlayers.map(p => p.name).join('&');
+    return { displayText: `${lowestScorePlayers[0].name} ${thirdPlaceNames} se: ${piche} piche` };
   
   }, [sortedPlayers, ranks]);
 
@@ -272,23 +284,19 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
-      <h1 className="text-xl font-bold tracking-tight mb-4 text-gradient-gold">
+      <h1 className="text-xl font-bold tracking-tight mb-6 text-gradient-gold">
         TASH PREMIER LEAGUE
       </h1>
-      <Card className="w-full max-w-4xl shadow-2xl">
-        <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
+      <Card className="w-full max-w-4xl shadow-2xl rounded-lg border border-primary/20 overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4 bg-gradient-to-r from-card to-card/80 border-b border-primary/10 sticky top-0 z-20">
             <div className="flex items-center gap-2">
-                 <Button variant="ghost" size="icon" onClick={undo} disabled={historyIndex === 0}><Undo /></Button>
-                 <Button variant="ghost" size="icon" onClick={redo} disabled={historyIndex >= history.length - 1}><Redo /></Button>
-            </div>
-            <div className="flex items-center gap-1 text-sm font-medium">
-                <Drumstick className="h-4 w-4 text-orange-500" />
-                <span className="font-bold text-base">{picheData.displayText}</span>
+                 <Button variant="ghost" size="icon" onClick={undo} disabled={historyIndex === 0} className="hover:bg-primary/20 active:scale-95 transition-all duration-150"><Undo /></Button>
+                 <Button variant="ghost" size="icon" onClick={redo} disabled={historyIndex >= history.length - 1} className="hover:bg-primary/20 active:scale-95 transition-all duration-150"><Redo /></Button>
             </div>
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon"><MoreVertical /></Button>
+                <Button variant="ghost" size="icon" className="hover:bg-primary/20 active:scale-95 transition-all duration-150"><MoreVertical /></Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <ThemeToggle />
@@ -340,8 +348,8 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
+          <div className="overflow-x-auto rounded-lg">
+            <Table className="border-collapse">
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[25px] w-[25px] text-center font-bold sticky left-0 bg-card z-10 p-1 text-xs border-r">R</TableHead>
@@ -349,7 +357,7 @@ export default function Home() {
                     <TableHead 
                       key={player.key} 
                       className={cn(
-                          "min-w-[50px] w-[50px] text-center font-bold truncate px-1 text-xs cursor-pointer hover:bg-primary/10",
+                          "min-w-[50px] w-[50px] text-center font-bold truncate px-1 text-xs cursor-pointer hover:bg-primary/20 transition-colors duration-200",
                           "border-r"
                       )}
                       onClick={() => setEditingCell({ type: 'player', key: player.key })}
@@ -381,8 +389,8 @@ export default function Home() {
                   }, 0);
 
                   return (
-                    <TableRow key={roundIndex}>
-                      <TableCell className="text-center font-semibold text-sm sticky left-0 bg-inherit z-10 p-1 border-r">{roundIndex + 1}</TableCell>
+                    <TableRow key={roundIndex} className="hover:bg-primary/5 transition-colors duration-150">
+                      <TableCell className="text-center font-semibold text-sm sticky left-0 bg-inherit z-10 p-1 border-r hover:bg-primary/10 transition-colors duration-150">{roundIndex + 1}</TableCell>
                       {gameState.players.map((player, playerIndex) => {
                         const cellKey = `${roundIndex}-${player.key}`;
                         const isEditing = editingCell?.type === 'score' && editingCell.key === cellKey;
@@ -396,13 +404,13 @@ export default function Home() {
                           <TableCell 
                             key={player.key} 
                             className={cn(
-                              "text-center p-0",
+                              "text-center p-0 transition-all duration-200",
                               "border-r",
                               scoreBgColor
                             )}
                             onClick={() => setEditingCell({ type: 'score', key: cellKey })}
                           >
-                            <div className="p-1 rounded-md hover:bg-primary/10 cursor-pointer transition-colors w-full h-full min-h-[36px] flex flex-col justify-center">
+                            <div className="p-1 rounded-md hover:bg-primary/15 cursor-pointer transition-all duration-200 w-full h-full min-h-[36px] flex flex-col justify-center active:scale-95">
                               {isEditing ? (
                                  <Input
                                    ref={inputRef}
@@ -446,7 +454,7 @@ export default function Home() {
                                 "border-r"
                             )}
                         >
-                            {Math.abs(totalScore) >= 10 ? totalScore : ''}
+                            {totalScore}
                         </TableCell>
                     )
                   })}
@@ -478,18 +486,22 @@ export default function Home() {
                 </TableRow>
               </tfoot>
             </Table>
+            <div className="flex items-center justify-center gap-2 p-4 border-t-2 border-primary bg-gradient-to-r from-red-500/10 to-orange-500/10">
+              <Circle className="h-5 w-5 fill-current text-red-600" />
+              <span className="font-bold text-lg text-red-600">{picheData.displayText}</span>
+            </div>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-wrap gap-2 justify-end items-center p-2 bg-muted/50">
+        <CardFooter className="flex flex-wrap gap-2 justify-end items-center p-2 bg-gradient-to-r from-muted/50 to-muted/30 border-t border-primary/10">
             {gameState.startTime && (
-                 <Button size="sm" variant="outline" className="mr-auto cursor-default hover:bg-transparent h-8 px-2 text-xs">
+                 <Button size="sm" variant="outline" className="mr-auto cursor-default hover:bg-transparent h-8 px-2 text-xs transition-all duration-200">
                     <Clock className="mr-2 h-3 w-3" />
                     {new Date(gameState.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Button>
             )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button size="sm" variant="destructive"><RotateCcw className="mr-1 h-4 w-4" /> Clear</Button>
+                <Button size="sm" variant="destructive" className="hover:scale-105 active:scale-95 transition-all duration-150"><RotateCcw className="mr-1 h-4 w-4" /> Clear</Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
