@@ -59,10 +59,7 @@ This project is configured as a Progressive Web App (PWA) with static export cap
    npm run build
    ```
 
-4. **Generate the static export** (outputs to `.next/static`):
-   ```bash
-   npm run export
-   ```
+4. Upload the folder to Cloudflare Pages
 
 ### Output Folder
 
