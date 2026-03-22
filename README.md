@@ -33,3 +33,57 @@ This application is built with a modern, robust, and scalable tech stack:
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **State Management**: React Hooks (`useState`, `useEffect`, `useMemo`) for local component state and managing game logic.
 - **Data Persistence**: Browser's `localStorage` API is used to save game state and history.
+
+## Building the PWA
+
+This project is configured as a Progressive Web App (PWA) with static export capabilities. Follow these steps to build the application and generate the output folder:
+
+### Prerequisites
+- Node.js (v18 or higher)
+- npm or yarn package manager
+
+### Build Steps
+
+1. **Don't forget to change directory** to the project folder:
+   ```bash
+   cd Callbreak
+   ```
+
+2. **Install dependencies** (if not already installed):
+   ```bash
+   npm install
+   ```
+
+3. **Build the PWA** with Next.js static export:
+   ```bash
+   npm run build
+   ```
+
+4. **Generate the static export** (outputs to `.next/static`):
+   ```bash
+   npm run export
+   ```
+
+### Output Folder
+
+After running the build commands, the application will be compiled into the following structure:
+
+- **`.next/` folder**: Contains Next.js build artifacts and optimized production files
+- **`out/` folder**: Contains the static HTML, CSS, and JavaScript files for PWA deployment
+- **`public/` folder**: Service worker files (`sw.js`) and PWA manifest files are automatically included
+
+### Deployment
+
+The generated `out/` folder contains all the files needed to deploy your PWA:
+- Serve the files with any web server (Apache, Nginx, etc.)
+- Deploy to static hosting platforms (Vercel, Netlify, GitHub Pages, etc.)
+- The service worker will enable offline functionality and app caching
+
+### Development
+
+To run the development server:
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:9002`
