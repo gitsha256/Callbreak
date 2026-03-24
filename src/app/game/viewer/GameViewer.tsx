@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { GameState, SavedGame } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Download } from 'lucide-react';
+import { loadGameFromCloud } from '@/lib/cloud-storage';
+import { useToast } from '@/hooks/use-toast';
 
 const getOrdinal = (n: number) => {
   const s = ["th", "st", "nd", "rd"];
@@ -17,28 +19,57 @@ const getOrdinal = (n: number) => {
 
 export default function GameViewerPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
 
   const [savedGame, setSavedGame] = useState<SavedGame | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
     if (id) {
-      try {
-        const history: SavedGame[] = JSON.parse(localStorage.getItem('callbreak-history') || '[]');
-        const game = history.find(g => g.id.toString() === id);
-        if (game) {
-          setSavedGame(game);
-        } else {
-          console.error("Game not found");
+      const loadGame = async () => {
+        setIsLoading(true);
+        try {
+          const gameState = await loadGameFromCloud(id);
+          if (gameState) {
+            const game: SavedGame = {
+              id: parseInt(id) || Date.now(),
+              timestamp: new Date(),
+              gameState
+            };
+            setSavedGame(game);
+          } else {
+            // Fallback to localStorage for backward compatibility
+            const history: SavedGame[] = JSON.parse(localStorage.getItem('callbreak-history') || '[]');
+            const game = history.find(g => g.id.toString() === id);
+            if (game) {
+              setSavedGame(game);
+            } else {
+              console.error("Game not found");
+              toast({
+                title: "Game not found",
+                description: "The requested game could not be found.",
+                variant: "destructive",
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load game:", error);
+          toast({
+            title: "Error loading game",
+            description: "Failed to load the game. Please try again.",
+            variant: "destructive",
+          });
         }
-      } catch (error) {
-        console.error("Failed to load game from history:", error);
-      }
+        setIsLoading(false);
+      };
+
+      loadGame();
     }
-  }, [id]);
+  }, [id, toast]);
 
   const gameState = useMemo(() => {
     if (!savedGame) return null;
@@ -101,8 +132,17 @@ export default function GameViewerPage() {
     }
   };
 
-  if (!isMounted) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  if (!isMounted || isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading game...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (!gameState) {

@@ -1,0 +1,10 @@
+name = "callbreak-load-game"
+main = "workers/load-game.js"
+compatibility_date = "2024-01-01"
+
+kv_namespaces = [
+  { binding = "CALLBREAK_GAMES", id = "9815298e65714566bc81755c78a99dee", preview_id = "9815298e65714566bc81755c78a99dee" }
+]
+
+[vars]
+# Add any environment variables here if needed

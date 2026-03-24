@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, Save, Trash2, Circle, RotateCcw, PlusCircle, Undo, Redo, Upload, Clock } from 'lucide-react';
+import { MoreVertical, Save, Trash2, Circle, RotateCcw, PlusCircle, Undo, Redo, Upload, Clock, Share2, Copy, Check, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,6 +14,8 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
+import { saveGameToCloud, loadGameFromCloud, generateGameId, getGameIdFromUrl, updateUrlWithGameId } from '@/lib/cloud-storage';
+import { useToast } from '@/hooks/use-toast';
 
 const getOrdinal = (n: number) => {
   const s = ["th", "st", "nd", "rd"];
@@ -23,21 +25,59 @@ const getOrdinal = (n: number) => {
 
 export default function Home() {
   const router = useRouter();
+  const { toast } = useToast();
   const [history, setHistory] = useState<GameState[]>(() => [initialGameState()]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [editingCell, setEditingCell] = useState<{ type: 'player' | 'score'; key: string } | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const [gameId, setGameId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [copiedGameId, setCopiedGameId] = useState(false);
+  const [loadGameId, setLoadGameId] = useState('');
 
   const gameState = history[historyIndex];
 
-  const updateGameState = (updater: (prevState: GameState) => GameState) => {
-    const currentState = history[historyIndex];
-    const newGameState = updater(currentState);
-    const newHistory = [...history.slice(0, historyIndex + 1), newGameState];
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
+  const copyGameId = async () => {
+    if (gameId) {
+      try {
+        await navigator.clipboard.writeText(gameId);
+        setCopiedGameId(true);
+        toast({
+          title: "Game ID copied",
+          description: "Share this ID with other players to continue scoring together",
+        });
+        setTimeout(() => setCopiedGameId(false), 2000);
+      } catch (error) {
+        toast({
+          title: "Failed to copy",
+          description: "Please manually copy the game ID",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const shareGame = async () => {
+    if (gameId) {
+      const shareUrl = `${window.location.origin}?gameId=${gameId}`;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Callbreak Game',
+            text: 'Join me for Callbreak scoring!',
+            url: shareUrl,
+          });
+        } catch (error) {
+          // User cancelled share or error
+          copyGameId();
+        }
+      } else {
+        copyGameId();
+      }
+    }
   };
   
   const undo = () => {
@@ -54,33 +94,119 @@ export default function Home() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedState = localStorage.getItem('callbreak-gamestate');
-    if (savedState) {
-      try {
-        const loadedGameState = JSON.parse(savedState);
-        const revivedGameState = {
-            ...loadedGameState,
-            startTime: loadedGameState.startTime ? new Date(loadedGameState.startTime) : null,
-        };
-        setHistory([revivedGameState]);
-        setHistoryIndex(0);
-      } catch (e) {
-        console.error("Could not load game state from localStorage", e);
+    const initializeGame = async () => {
+      const urlGameId = getGameIdFromUrl();
+
+      if (urlGameId) {
+        // Load game from cloud
+        setIsLoading(true);
+        try {
+          const loadedGameState = await loadGameFromCloud(urlGameId);
+          if (loadedGameState) {
+            setGameId(urlGameId);
+            const revivedGameState = {
+              ...loadedGameState,
+              startTime: loadedGameState.startTime ? new Date(loadedGameState.startTime) : null,
+            };
+            setHistory([revivedGameState]);
+            setHistoryIndex(0);
+            toast({
+              title: "Game loaded",
+              description: "Successfully loaded game from cloud",
+            });
+          } else {
+            toast({
+              title: "Game not found",
+              description: "The game ID is invalid or expired. Starting a new game.",
+              variant: "destructive",
+            });
+            const newId = generateGameId();
+            setGameId(newId);
+            updateUrlWithGameId(newId);
+          }
+        } catch (error) {
+          console.error("Failed to load game from cloud:", error);
+          toast({
+            title: "Error loading game",
+            description: "Failed to load game from cloud. Starting a new game.",
+            variant: "destructive",
+          });
+          const newId = generateGameId();
+          setGameId(newId);
+          updateUrlWithGameId(newId);
+        }
+        setIsLoading(false);
+      } else {
+        // Check localStorage for backward compatibility, then create new game
+        const savedState = localStorage.getItem('callbreak-gamestate');
+        if (savedState) {
+          try {
+            const loadedGameState = JSON.parse(savedState);
+            const revivedGameState = {
+              ...loadedGameState,
+              startTime: loadedGameState.startTime ? new Date(loadedGameState.startTime) : null,
+            };
+            setHistory([revivedGameState]);
+            setHistoryIndex(0);
+            // Generate new game ID for existing local game
+            const newId = generateGameId();
+            setGameId(newId);
+            updateUrlWithGameId(newId);
+          } catch (e) {
+            console.error("Could not load game state from localStorage", e);
+            const newId = generateGameId();
+            setGameId(newId);
+            updateUrlWithGameId(newId);
+          }
+        } else {
+          const newId = generateGameId();
+          setGameId(newId);
+          updateUrlWithGameId(newId);
+        }
       }
-    }
+    };
+
+    initializeGame();
   }, []);
 
   useEffect(() => {
-    if (isMounted) {
+    if (isMounted && gameId) {
+      // Save to localStorage for backward compatibility
       localStorage.setItem('callbreak-gamestate', JSON.stringify(gameState));
+
+      // Auto-save to cloud with debouncing
+      const timeoutId = setTimeout(async () => {
+        if (gameId) {
+          const success = await saveGameToCloud(gameId, gameState);
+          if (!success) {
+            toast({
+              title: "Auto-save failed",
+              description: "Could not save game to cloud. Please check your connection.",
+              variant: "destructive",
+            });
+          }
+        }
+      }, 2000); // 2 second debounce
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [gameState, isMounted]);
+  }, [gameState, isMounted, gameId]);
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
       inputRef.current.focus();
     }
   }, [editingCell]);
+
+  const updateGameState = (updater: (prevState: GameState) => GameState) => {
+    setHistory(prevHistory => {
+      const newState = updater(prevHistory[historyIndex]);
+      const newHistory = prevHistory.slice(0, historyIndex + 1);
+      newHistory.push(newState);
+      return newHistory;
+    });
+    setHistoryIndex(prevIndex => prevIndex + 1);
+  };
 
   const handlePlayerNameChange = (playerKey: string, newName: string) => {
     if (!newName.trim()) {
@@ -219,14 +345,37 @@ export default function Home() {
     setHistoryIndex(0);
   };
   
-  const saveGame = () => {
+  const saveGame = async () => {
     try {
+      // Save to local history for backward compatibility
       const savedGames: SavedGame[] = JSON.parse(localStorage.getItem('callbreak-history') || '[]');
       const newSave: SavedGame = { id: Date.now(), timestamp: new Date(), gameState };
       savedGames.unshift(newSave);
       localStorage.setItem('callbreak-history', JSON.stringify(savedGames.slice(0, 50)));
+
+      // Also save to cloud if we have a gameId
+      if (gameId) {
+        const success = await saveGameToCloud(gameId, gameState);
+        if (success) {
+          toast({
+            title: "Game saved",
+            description: "Game saved to cloud and local history",
+          });
+        } else {
+          toast({
+            title: "Partial save",
+            description: "Game saved locally but failed to save to cloud",
+            variant: "destructive",
+          });
+        }
+      }
     } catch (error) {
       console.error("Could not save game to history.", error);
+      toast({
+        title: "Save failed",
+        description: "Could not save game",
+        variant: "destructive",
+      });
     }
   };
   
@@ -270,8 +419,60 @@ export default function Home() {
     resetGame();
   }
 
-  if (!isMounted || !gameState) {
-    return null;
+  const handleLoadGame = async () => {
+    if (!loadGameId.trim()) {
+      toast({
+        title: "Invalid Game ID",
+        description: "Please enter a valid game ID.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const loadedGameState = await loadGameFromCloud(loadGameId.trim());
+      if (loadedGameState) {
+        setHistory([loadedGameState]);
+        setHistoryIndex(0);
+        setGameId(loadGameId.trim());
+        updateUrlWithGameId(loadGameId.trim());
+        setLoadGameId('');
+        toast({
+          title: "Game loaded",
+          description: "Successfully loaded the game from cloud.",
+        });
+      } else {
+        toast({
+          title: "Game not found",
+          description: "No game found with the provided ID.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load game:", error);
+      toast({
+        title: "Error loading game",
+        description: "Failed to load the game. Please try again.",
+        variant: "destructive",
+      });
+    }
+    setIsLoading(false);
+  };
+
+  if (!isMounted || !gameState || isLoading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardContent className="p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">
+              {isLoading ? 'Loading game from cloud...' : 'Initializing...'}
+            </p>
+          </CardContent>
+        </Card>
+      </main>
+    );
   }
   
   const handGradientClasses = [
@@ -287,11 +488,18 @@ export default function Home() {
       <h1 className="text-xl font-bold tracking-tight mb-6 text-gradient-gold">
         TASH PREMIER LEAGUE
       </h1>
+
       <Card className="w-full max-w-4xl shadow-2xl rounded-lg border border-primary/20 overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4 bg-gradient-to-r from-card to-card/80 border-b border-primary/10 sticky top-0 z-20">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
                  <Button variant="ghost" size="icon" onClick={undo} disabled={historyIndex === 0} className="hover:bg-primary/20 active:scale-95 transition-all duration-150"><Undo /></Button>
                  <Button variant="ghost" size="icon" onClick={redo} disabled={historyIndex >= history.length - 1} className="hover:bg-primary/20 active:scale-95 transition-all duration-150"><Redo /></Button>
+                 {gameId && (
+                   <div className="flex items-center gap-2 rounded-md border border-primary/30 px-2 py-1 text-xs sm:text-sm">
+                     <span className="font-semibold">Game ID:</span>
+                     <span className="font-mono tracking-wider">{gameId}</span>
+                   </div>
+                 )}
             </div>
           <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -303,8 +511,61 @@ export default function Home() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleAddRound}><PlusCircle className="mr-2 h-4 w-4" /> Add Round</DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => {
+                  if (!gameId) {
+                    toast({ title: 'No game ID', description: 'Game ID not available yet.', variant: 'destructive' });
+                    return;
+                  }
+                  copyGameId();
+                }}>
+                  <Copy className="mr-2 h-4 w-4" /> Copy Game ID
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => {
+                  if (!gameId) {
+                    toast({ title: 'No game ID', description: 'Game ID not available yet.', variant: 'destructive' });
+                    return;
+                  }
+                  shareGame();
+                }}>
+                  <Share2 className="mr-2 h-4 w-4" /> Share Game
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => router.push('/history')}>
-                    <Upload className="mr-2 h-4 w-4" /> Saved Games
+                    <Clock className="mr-2 h-4 w-4" /> Saved Games
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <div className="flex items-center w-full">
+                        <Download className="mr-2 h-4 w-4" /> Load Game
+                      </div>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Load Game</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Enter the Game ID to load a shared game.
+                        </AlertDialogDescription>
+                        <div className="space-y-2 pt-2">
+                          <Label htmlFor="load-game-id">Game ID</Label>
+                          <Input
+                            id="load-game-id"
+                            type="text"
+                            value={loadGameId}
+                            onChange={(e) => setLoadGameId(e.target.value)}
+                            placeholder="Enter 4-digit game ID..."
+                            maxLength={4}
+                          />
+                        </div>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setLoadGameId('')}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleLoadGame}>
+                          Load Game
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                  <AlertDialog>
