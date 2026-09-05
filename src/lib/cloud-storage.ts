@@ -1,6 +1,17 @@
 "use client";
 
 import { GameState } from './types';
+import { CPGameState } from './court-piece-types';
+
+export type SupportedGameState = GameState | CPGameState;
+
+export const isCourtPieceGameState = (gameState: SupportedGameState): gameState is CPGameState => {
+  return 'teamNames' in gameState && 'matchTotals' in gameState && gameState.players.every(player => 'team' in player);
+};
+
+export const isCallbreakGameState = (gameState: SupportedGameState): gameState is GameState => {
+  return !isCourtPieceGameState(gameState) && gameState.rounds.every(round => 'scores' in round);
+};
 
 // Cloudflare Worker URLs - replace with your actual deployed Worker URLs
 const SAVE_GAME_URL = process.env.NEXT_PUBLIC_SAVE_GAME_URL || 'https://your-worker.your-domain.workers.dev/save-game';
@@ -8,7 +19,7 @@ const LOAD_GAME_URL = process.env.NEXT_PUBLIC_LOAD_GAME_URL || 'https://your-wor
 
 export interface CloudGameData {
   gameId: string;
-  gameState: GameState;
+  gameState: SupportedGameState;
   lastModified: Date;
 }
 
@@ -16,7 +27,7 @@ export const generateGameId = (): string => {
   return Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit number
 };
 
-export const saveGameToCloud = async (gameId: string, gameState: GameState): Promise<boolean> => {
+export const saveGameToCloud = async (gameId: string, gameState: SupportedGameState): Promise<boolean> => {
   try {
     const response = await fetch(SAVE_GAME_URL, {
       method: 'POST',
@@ -41,7 +52,7 @@ export const saveGameToCloud = async (gameId: string, gameState: GameState): Pro
   }
 };
 
-export const loadGameFromCloud = async (gameId: string): Promise<GameState | null> => {
+export const loadGameFromCloud = async <T extends SupportedGameState = SupportedGameState>(gameId: string): Promise<T | null> => {
   try {
     const response = await fetch(`${LOAD_GAME_URL}?gameId=${encodeURIComponent(gameId)}`, {
       method: 'GET',
@@ -60,10 +71,10 @@ export const loadGameFromCloud = async (gameId: string): Promise<GameState | nul
     const data: CloudGameData = await response.json();
 
     // Revive Date objects
-    const revivedGameState: GameState = {
+    const revivedGameState: T = {
       ...data.gameState,
       startTime: data.gameState.startTime ? new Date(data.gameState.startTime) : null,
-    };
+    } as T;
 
     return revivedGameState;
   } catch (error) {

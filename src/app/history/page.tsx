@@ -7,13 +7,55 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { SavedGame } from "@/lib/types";
-import { ArrowLeft } from "lucide-react";
+import { GameState, SavedGame } from "@/lib/types";
+import { CPGameState } from "@/lib/court-piece-types";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Trash2 } from "lucide-react";
+
+const getLoserName = (game: SavedGame): string => {
+  if (game.gameMode === 'courtpiece') {
+    const state = game.gameState as CPGameState;
+    return `${state.teamNames.A}: ${state.matchTotals.teamATotal} - ${state.teamNames.B}: ${state.matchTotals.teamBTotal}`;
+  }
+
+  const callbreakState = game.gameState as GameState;
+  const { players, rounds } = callbreakState;
+  const totalScores: { [key: string]: number } = {};
+
+  // Initialize totals
+  players.forEach(player => {
+    totalScores[player.key] = 0;
+  });
+
+  // Sum scores across all rounds
+  rounds.forEach(round => {
+    players.forEach(player => {
+      const score = round.scores[player.key];
+      if (score !== null) {
+        totalScores[player.key] += score;
+      }
+    });
+  });
+
+  // Find the minimum score
+  const minScore = Math.min(...Object.values(totalScores));
+
+  // Get players with the minimum score
+  const losers = players.filter(player => totalScores[player.key] === minScore);
+
+  // Return names
+  if (losers.length === 1) {
+    return losers[0].name;
+  } else {
+    return losers.map(l => l.name).join(" & ");
+  }
+};
 
 export default function HistoryPage() {
   const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
   const [filteredGames, setFilteredGames] = useState<SavedGame[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
 
@@ -39,7 +81,9 @@ export default function HistoryPage() {
         p.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
       const scoreMatch = Object.values(game.gameState.rounds)
-        .flatMap((round) => Object.values(round.scores))
+        .flatMap((round) => game.gameMode === 'courtpiece'
+          ? [round.teamAScore, round.teamBScore]
+          : Object.values(round.scores))
         .some((score) => score?.toString().includes(searchTerm));
       return timestampMatch || playerMatch || scoreMatch;
     });
@@ -48,6 +92,19 @@ export default function HistoryPage() {
 
   const handleViewGame = (gameId: number) => {
     router.push(`/game/viewer?id=${gameId}`);
+  };
+
+  const handleBackHome = () => {
+    router.push(localStorage.getItem('default-game-mode') === 'courtpiece' ? '/court-piece' : '/');
+  };
+
+  const deleteHistory = () => {
+    if (deletePassword !== 'tash') return false;
+    localStorage.removeItem('callbreak-history');
+    setSavedGames([]);
+    setFilteredGames([]);
+    setDeletePassword('');
+    return true;
   };
 
   if (!isMounted) {
@@ -84,7 +141,7 @@ export default function HistoryPage() {
                       className="cursor-pointer hover:bg-muted/50"
                     >
                       <TableCell className="font-medium">{index + 1}</TableCell>
-                      <TableCell>{new Date(game.timestamp).toLocaleString()}</TableCell>
+                      <TableCell>{new Date(game.timestamp).toLocaleString()} - {game.gameMode === 'courtpiece' ? 'Court Piece' : 'Callbreak'} - {getLoserName(game)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -96,10 +153,41 @@ export default function HistoryPage() {
             )}
           </ScrollArea>
         </CardContent>
-        <CardFooter className="flex justify-start pt-6">
-          <Button onClick={() => router.push("/")} variant="outline">
+        <CardFooter className="flex justify-between gap-2 pt-6">
+          <Button onClick={handleBackHome} variant="outline">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
           </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete History</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete all your saved games. This action cannot be undone. Please enter the password to proceed.
+                </AlertDialogDescription>
+                <Input
+                  id="history-delete-password"
+                  type="password"
+                  value={deletePassword}
+                  onChange={(event) => setDeletePassword(event.target.value)}
+                  placeholder="Enter password..."
+                />
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDeletePassword('')}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(event) => {
+                    if (!deleteHistory()) event.preventDefault();
+                  }}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardFooter>
       </Card>
     </main>

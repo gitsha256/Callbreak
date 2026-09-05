@@ -1,3 +1,5 @@
+import { CPGameState, GameMode } from './court-piece-types';
+
 export interface Player {
   key: string;
   name: string;
@@ -18,7 +20,8 @@ export interface GameState {
 export interface SavedGame {
   id: number;
   timestamp: Date;
-  gameState: GameState;
+  gameMode?: GameMode;
+  gameState: GameState | CPGameState;
 }
 
 const defaultPlayerNames = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];

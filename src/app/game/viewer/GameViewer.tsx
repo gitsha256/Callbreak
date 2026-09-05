@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { GameState, SavedGame } from '@/lib/types';
+import { CPGameState } from '@/lib/court-piece-types';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Download } from 'lucide-react';
 import { loadGameFromCloud } from '@/lib/cloud-storage';
@@ -76,12 +77,41 @@ export default function GameViewerPage() {
     return {
       ...savedGame.gameState,
       startTime: savedGame.gameState.startTime ? new Date(savedGame.gameState.startTime) : null,
-    };
+    } as GameState;
   }, [savedGame]);
+
+  const courtPieceState = useMemo(() => {
+    if (!savedGame || savedGame.gameMode !== 'courtpiece') return null;
+    return savedGame.gameState as CPGameState;
+  }, [savedGame]);
+
+  const courtPieceWinNeeds = useMemo(() => {
+    if (!courtPieceState) return null;
+    const teamATotal = courtPieceState.matchTotals.teamATotal;
+    const teamBTotal = courtPieceState.matchTotals.teamBTotal;
+    const pointDifference = Math.abs(teamATotal - teamBTotal);
+    const getNeeds = (teamTotal: number, opponentTotal: number) => {
+      const needsRace = Math.max(0, 52 - teamTotal);
+      const needsDifference = teamTotal > opponentTotal
+        ? Math.max(0, 52 - pointDifference)
+        : 52 + pointDifference;
+      return {
+        needsRace,
+        needsDifference,
+        fastest: Math.min(needsRace, needsDifference),
+        isLeading: teamTotal > opponentTotal,
+      };
+    };
+    return {
+      pointDifference,
+      A: getNeeds(teamATotal, teamBTotal),
+      B: getNeeds(teamBTotal, teamATotal),
+    };
+  }, [courtPieceState]);
 
   const totalScores = useMemo(() => {
     const totals: { [key: string]: number } = {};
-    if (!gameState) return totals;
+    if (!gameState || courtPieceState) return totals;
     gameState.players.forEach(p => (totals[p.key] = 0));
     gameState.rounds.forEach(round => {
       gameState.players.forEach(player => {
@@ -127,9 +157,18 @@ export default function GameViewerPage() {
 
   const handleLoadGame = () => {
     if (savedGame) {
-      localStorage.setItem('callbreak-gamestate', JSON.stringify(savedGame.gameState));
-      router.push('/');
+      if (courtPieceState) {
+        localStorage.setItem('callbreak-court-piece-gamestate', JSON.stringify(courtPieceState));
+        router.push('/court-piece');
+      } else {
+        localStorage.setItem('callbreak-gamestate', JSON.stringify(savedGame.gameState));
+        router.push('/?mode=callbreak');
+      }
     }
+  };
+
+  const handleBackHome = () => {
+    router.push(courtPieceState ? '/court-piece' : '/');
   };
 
   if (!isMounted || isLoading) {
@@ -156,12 +195,65 @@ export default function GameViewerPage() {
             <p>The game you are looking for does not exist.</p>
           </CardContent>
           <CardFooter>
-            <Button onClick={() => router.push('/')}>
+            <Button onClick={handleBackHome}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
             </Button>
           </CardFooter>
         </Card>
       </div>
+    );
+  }
+
+  if (courtPieceState) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
+        <Card className="w-full max-w-4xl shadow-2xl">
+          <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4">
+            <Button onClick={() => router.push('/history')} variant="ghost" size="icon"><ArrowLeft /></Button>
+            <div className="text-center">
+              <CardTitle className="text-lg sm:text-xl">Court Piece Game Summary</CardTitle>
+              <p className="text-xs text-muted-foreground">Saved {savedGame ? new Date(savedGame.timestamp).toLocaleString() : ''}</p>
+            </div>
+            <div className="w-10" />
+          </CardHeader>
+          <CardContent className="space-y-4 p-2 sm:p-4">
+            <Table>
+              <TableHeader><TableRow><TableHead className="w-[30px] border-r p-1 text-center text-xs sm:w-[42px]">R</TableHead><TableHead className="border-r bg-blue-500/10 p-1 text-center text-xs sm:text-sm">{courtPieceState.teamNames.A}</TableHead><TableHead className="bg-red-500/10 p-1 text-center text-xs sm:text-sm">{courtPieceState.teamNames.B}</TableHead></TableRow></TableHeader>
+              <TableBody>{courtPieceState.rounds.map(round => (
+                <TableRow key={round.roundNumber} className="hover:bg-primary/5">
+                  <TableCell className="border-r p-1 text-center text-xs font-semibold sm:text-sm">{round.roundNumber}</TableCell>
+                  <TableCell className={`border-r p-1 text-center text-sm font-bold ${round.teamAScore !== null ? round.teamAScore < 0 ? 'bg-red-500/25' : 'bg-green-500/25' : ''}`}>{round.teamAScore ?? ''}</TableCell>
+                  <TableCell className={`p-1 text-center text-sm font-bold ${round.teamBScore !== null ? round.teamBScore < 0 ? 'bg-red-500/25' : 'bg-green-500/25' : ''}`}>{round.teamBScore ?? ''}</TableCell>
+                </TableRow>
+              ))}</TableBody>
+              <tfoot className="border-t-2 border-primary"><TableRow><TableCell className="border-r p-1 text-center text-[10px] font-bold sm:text-xs">Total</TableCell><TableCell className="border-r bg-blue-500/10 p-1 text-center text-base font-bold text-blue-600 sm:text-lg">{courtPieceState.matchTotals.teamATotal}</TableCell><TableCell className="bg-red-500/10 p-1 text-center text-base font-bold text-red-600 sm:text-lg">{courtPieceState.matchTotals.teamBTotal}</TableCell></TableRow></tfoot>
+            </Table>
+            {courtPieceWinNeeds && (
+              <div className="space-y-3 border-t-2 border-primary bg-gradient-to-r from-red-500/10 to-orange-500/10 p-3">
+                <div className="text-center text-sm font-bold text-muted-foreground">POINT DIFFERENCE: {courtPieceWinNeeds.pointDifference}</div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  {(['A', 'B'] as const).map(team => {
+                    const needs = courtPieceWinNeeds[team];
+                    const total = courtPieceState.matchTotals[team === 'A' ? 'teamATotal' : 'teamBTotal'];
+                    const isFastest = needs.fastest === Math.min(courtPieceWinNeeds.A.fastest, courtPieceWinNeeds.B.fastest);
+                    return (
+                      <div key={team} className={`rounded-md border p-3 ${isFastest ? 'border-green-500 bg-green-500/10' : 'bg-background/50'}`}>
+                        <div className="flex items-center justify-between font-bold"><span>{courtPieceState.teamNames[team]}</span><span>{total >= 0 ? '+' : ''}{total}</span></div>
+                        <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                          <div>52 k liye Chahiye= {needs.needsRace}</div>
+                          {needs.isLeading && <div>By Difference= {needs.needsDifference}</div>}
+                        </div>
+                        <div className={`mt-2 text-sm font-bold ${isFastest ? 'text-green-600' : 'text-foreground'}`}>To Win {needs.fastest}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="flex justify-end p-2 bg-muted/50"><Button size="sm" onClick={handleLoadGame}><Download className="mr-2 h-4 w-4" /> Load this Game</Button></CardFooter>
+        </Card>
+      </main>
     );
   }
 

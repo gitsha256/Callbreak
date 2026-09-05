@@ -16,6 +16,11 @@
 # next.js
 /.next/
 
+# Cloudflare and local tooling
+/.wrangler/
+/.idx/
+/.modified
+
 # production
 /build
 
@@ -38,6 +43,7 @@ next-env.d.ts
 
 .genkit/*
 .env*
+!.env.example
 
 # firebase
 firebase-debug.log

@@ -19,7 +19,7 @@ This is a web-based scorekeeping application designed specifically for the popul
     - **Game Summary**: View a detailed summary of any past game.
     - **Load Game**: You can load any game from your history back onto the main scoreboard to view or continue it.
 - **Theme Toggle**: Switch between a visually appealing dark mode (with a shimmering golden title) and a clean light mode.
-- **Password-Protected History Deletion**: Safely clear all your saved game history with a password prompt to prevent accidental deletion.
+- **Password-Protected History Deletion**: Safely clear all your saved game history with a password prompt to prevent accidental deletion. "tash"
 
 ## Tech Stack
 
@@ -87,3 +87,55 @@ npm run dev
 ```
 
 The application will be available at `http://localhost:9002`
+
+## Court Piece Mode
+
+The application also includes a six-player Court Piece mode with two teams. It supports:
+
+- Team-based round scoring with editable team names.
+- Automatic opposing-team zero values when correcting a row entry.
+- Race wins when either team reaches 52 points.
+- Difference wins when the score gap reaches 52 points.
+- A compact win panel showing each team's race requirement, difference requirement, and fastest path.
+- Court Piece history, summaries, and loading from saved games.
+
+## Cloudflare Workers Storage
+
+Cloud storage is optional. The application continues to work with browser `localStorage` when Worker URLs are not configured.
+
+1. Copy `.env.example` to `.env.local`.
+2. Set the save and load Worker URLs in `.env.local`:
+
+   ```env
+   NEXT_PUBLIC_SAVE_GAME_URL=https://your-save-worker.workers.dev
+   NEXT_PUBLIC_LOAD_GAME_URL=https://your-load-worker.workers.dev
+   ```
+
+3. Follow [CLOUDFLARE_DEPLOYMENT.md](CLOUDFLARE_DEPLOYMENT.md) to configure the KV namespace and deploy both Workers.
+
+Worker deployment commands:
+
+```bash
+npm run deploy:save-worker
+npm run deploy:load-worker
+```
+
+Cloudflare KV game records currently expire after 24 hours. Frequent automatic saves consume KV operations, so review Cloudflare usage before deploying to a large audience.
+
+## GitHub Preparation
+
+Before pushing the project:
+
+- Do not commit `.env.local` or deployment credentials.
+- Keep `.env.example` as the safe configuration template.
+- Generated Next.js files in `.next/` and local Wrangler files in `.wrangler/` are ignored.
+- The `out/` directory is used by the existing static deployment workflow.
+
+Run these checks from the project directory:
+
+```bash
+npm run typecheck
+npm run build
+```
+
+The project contains Court Piece scoring tests under `__tests__/` and Android source under `android/`.
