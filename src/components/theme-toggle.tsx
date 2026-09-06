@@ -2,8 +2,9 @@
 "use client"
 
 import * as React from "react"
-import { Lightbulb } from "lucide-react"
+import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -15,12 +16,11 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      type="button"
-      aria-label="Toggle theme"
-      title="Toggle theme"
-      className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent"
+      className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-accent"
     >
-        <Lightbulb className="h-4 w-4" />
+        <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+        <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        <span className="ml-2">Toggle Theme</span>
     </button>
   )
 }

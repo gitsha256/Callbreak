@@ -138,7 +138,7 @@ export const createCPGameState = (playerNames: string[]): CPGameState => {
     throw new Error('Court Piece requires exactly 6 players');
   }
 
-  const players = playerNames.map((name, index) => ({
+  const players: CPPlayer[] = playerNames.map((name, index) => ({
     key: `cp_player${index}`,
     name,
     team: index % 2 === 0 ? 'A' : 'B',
@@ -168,10 +168,18 @@ export const createCPGameState = (playerNames: string[]): CPGameState => {
     initialRound.tricksWon[p.key] = null;
   });
 
+  const rounds = Array.from({ length: 15 }, (_, index) => ({
+    ...initialRound,
+    roundNumber: index + 1,
+    bids: { ...initialRound.bids },
+    tricksWon: { ...initialRound.tricksWon },
+    timestamp: new Date(),
+  }));
+
   return {
     players,
     teamNames: { A: 'Team A', B: 'Team B' },
-    rounds: [initialRound],
+    rounds,
     matchTotals: {
       teamATotal: 0,
       teamBTotal: 0,

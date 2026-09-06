@@ -231,15 +231,11 @@ export const checkMatchCompletion = (
   teamBTotal: number,
   pointsToWin: number = 52
 ): { isComplete: boolean; winner?: TeamId } => {
-  const pointDifference = Math.abs(teamATotal - teamBTotal);
   if (teamATotal >= pointsToWin) {
     return { isComplete: true, winner: 'A' };
   }
   if (teamBTotal >= pointsToWin) {
     return { isComplete: true, winner: 'B' };
-  }
-  if (pointDifference >= pointsToWin) {
-    return { isComplete: true, winner: teamATotal > teamBTotal ? 'A' : 'B' };
   }
   return { isComplete: false };
 };

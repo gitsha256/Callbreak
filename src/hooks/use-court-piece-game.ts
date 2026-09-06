@@ -60,10 +60,10 @@ const cpGameReducer = (state: CPGameState, action: GameAction): CPGameState => {
 
         return {
           ...round,
-          totalTeamACall: team === 'A' ? value : 0,
-          totalTeamBCall: team === 'B' ? value : 0,
-          teamAScore: team === 'A' ? value : 0,
-          teamBScore: team === 'B' ? value : 0,
+          totalTeamACall: team === 'A' ? value : round.totalTeamACall,
+          totalTeamBCall: team === 'B' ? value : round.totalTeamBCall,
+          teamAScore: team === 'A' ? value : round.teamAScore,
+          teamBScore: team === 'B' ? value : round.teamBScore,
         };
       });
 
@@ -73,7 +73,7 @@ const cpGameReducer = (state: CPGameState, action: GameAction): CPGameState => {
         round.totalTeamACall === null && round.totalTeamBCall === null
       );
 
-      if (hasEntry && !hasBlankNextRound && roundIndex === updatedRounds.length - 1) {
+      if (hasEntry && !hasBlankNextRound) {
         updatedRounds.push(createNextRound(editedRound, state.players));
       }
 
@@ -279,6 +279,30 @@ export const useCourtPieceGame = (initialPlayerNames?: string[]) => {
     initialPlayerNames || ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6'],
     (init) => createCPGameState(init)
   );
+  const [pastStates, setPastStates] = useState<CPGameState[]>([]);
+  const [futureStates, setFutureStates] = useState<CPGameState[]>([]);
+
+  const dispatchWithHistory = useCallback((action: GameAction) => {
+    setPastStates(previous => [...previous, gameState]);
+    setFutureStates([]);
+    dispatch(action);
+  }, [gameState]);
+
+  const undo = useCallback(() => {
+    const previousState = pastStates[pastStates.length - 1];
+    if (!previousState) return;
+    setPastStates(previous => previous.slice(0, -1));
+    setFutureStates(previous => [gameState, ...previous]);
+    dispatch({ type: 'LOAD_GAME_STATE', payload: previousState });
+  }, [gameState, pastStates]);
+
+  const redo = useCallback(() => {
+    const nextState = futureStates[0];
+    if (!nextState) return;
+    setFutureStates(previous => previous.slice(1));
+    setPastStates(previous => [...previous, gameState]);
+    dispatch({ type: 'LOAD_GAME_STATE', payload: nextState });
+  }, [futureStates, gameState]);
 
   const [scoringConfig, setScoringConfig] = useState<CPScoringConfig>({
     allowFractionalOverTricks: false,
@@ -295,32 +319,34 @@ export const useCourtPieceGame = (initialPlayerNames?: string[]) => {
     (playerKey: string, bid: number) => {
       try {
         setError(null);
-        dispatch({ type: 'PLACE_BID', payload: { playerKey, bid } });
+        dispatchWithHistory({ type: 'PLACE_BID', payload: { playerKey, bid } });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to place bid';
         setError(errorMessage);
       }
     },
-    []
+    [dispatchWithHistory]
   );
 
   const updateRoundEntry = useCallback(
     (roundIndex: number, team: TeamId, value: number | null) => {
       setError(null);
-      dispatch({ type: 'UPDATE_ROUND_ENTRY', payload: { roundIndex, team, value } });
+      dispatchWithHistory({ type: 'UPDATE_ROUND_ENTRY', payload: { roundIndex, team, value } });
     },
-    []
+    [dispatchWithHistory]
   );
 
   const loadGameState = useCallback((loadedGameState: CPGameState) => {
     setError(null);
     dispatch({ type: 'LOAD_GAME_STATE', payload: loadedGameState });
+    setPastStates([]);
+    setFutureStates([]);
   }, []);
 
   const resetGame = useCallback(() => {
     setError(null);
-    dispatch({ type: 'RESET_GAME' });
-  }, []);
+    dispatchWithHistory({ type: 'RESET_GAME' });
+  }, [dispatchWithHistory]);
 
   /**
    * Finalize bidding and move to playing phase
@@ -328,12 +354,12 @@ export const useCourtPieceGame = (initialPlayerNames?: string[]) => {
   const finalizeBiddingPhase = useCallback(() => {
     try {
       setError(null);
-      dispatch({ type: 'FINALIZE_BIDDING' });
+      dispatchWithHistory({ type: 'FINALIZE_BIDDING' });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to finalize bidding';
       setError(errorMessage);
     }
-  }, []);
+  }, [dispatchWithHistory]);
 
   /**
    * Record tricks won by a player
@@ -341,12 +367,12 @@ export const useCourtPieceGame = (initialPlayerNames?: string[]) => {
   const recordTricksWon = useCallback((playerKey: string, tricksWon: number) => {
     try {
       setError(null);
-      dispatch({ type: 'RECORD_TRICK', payload: { playerKey, tricksWon } });
+      dispatchWithHistory({ type: 'RECORD_TRICK', payload: { playerKey, tricksWon } });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to record tricks';
       setError(errorMessage);
     }
-  }, []);
+  }, [dispatchWithHistory]);
 
   /**
    * Finalize settlement and calculate scores
@@ -354,12 +380,12 @@ export const useCourtPieceGame = (initialPlayerNames?: string[]) => {
   const finalizeSettlementPhase = useCallback(() => {
     try {
       setError(null);
-      dispatch({ type: 'FINALIZE_SETTLEMENT' });
+      dispatchWithHistory({ type: 'FINALIZE_SETTLEMENT' });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to finalize settlement';
       setError(errorMessage);
     }
-  }, []);
+  }, [dispatchWithHistory]);
 
   /**
    * Start next round
@@ -367,12 +393,12 @@ export const useCourtPieceGame = (initialPlayerNames?: string[]) => {
   const startNextRound = useCallback(() => {
     try {
       setError(null);
-      dispatch({ type: 'START_NEXT_ROUND' });
+      dispatchWithHistory({ type: 'START_NEXT_ROUND' });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start next round';
       setError(errorMessage);
     }
-  }, []);
+  }, [dispatchWithHistory]);
 
   /**
    * Update player name
@@ -393,8 +419,8 @@ export const useCourtPieceGame = (initialPlayerNames?: string[]) => {
   }, [gameState]);
 
   const updateTeamName = useCallback((team: TeamId, name: string) => {
-    dispatch({ type: 'UPDATE_TEAM_NAME', payload: { team, name } });
-  }, []);
+    dispatchWithHistory({ type: 'UPDATE_TEAM_NAME', payload: { team, name } });
+  }, [dispatchWithHistory]);
 
   /**
    * Get current round
@@ -458,6 +484,10 @@ export const useCourtPieceGame = (initialPlayerNames?: string[]) => {
       startNextRound,
       updatePlayerName,
       updateTeamName,
+      undo,
+      redo,
+      canUndo: pastStates.length > 0,
+      canRedo: futureStates.length > 0,
     },
     selectors: {
       getCurrentRound,

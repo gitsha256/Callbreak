@@ -23,7 +23,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CPScorecard } from '@/components/cp-scorecard';
 import { useCourtPieceGame } from '@/hooks/use-court-piece-game';
 import { useToast } from '@/hooks/use-toast';
-import { saveGameToCloud, loadGameFromCloud, generateGameId, getGameIdFromUrl, updateUrlWithGameId, isCallbreakGameState } from '@/lib/cloud-storage';
+import { saveGameToCloud, loadGameFromCloud, generateGameId, getGameIdFromUrl, updateUrlWithGameId } from '@/lib/cloud-storage';
 import { CPGameState } from '@/lib/court-piece-types';
 import { RotateCcw } from 'lucide-react';
 
@@ -48,7 +48,6 @@ export default function CourtPiecePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [copiedGameId, setCopiedGameId] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [modeMismatch, setModeMismatch] = useState<'callbreak' | null>(null);
 
 
   // Initialize game
@@ -61,16 +60,13 @@ export default function CourtPiecePage() {
         setIsLoading(true);
         try {
           const loadedGameState = await loadGameFromCloud(urlGameId);
-          if (loadedGameState && !isCallbreakGameState(loadedGameState) && 'teamNames' in loadedGameState) {
+          if (loadedGameState && 'players' in loadedGameState) {
             setGameId(urlGameId);
             loadGameState(loadedGameState as CPGameState);
             toast({
               title: 'Game loaded',
               description: 'Successfully loaded Court Piece game from cloud',
             });
-          } else if (loadedGameState && isCallbreakGameState(loadedGameState)) {
-            localStorage.setItem('callbreak-gamestate', JSON.stringify(loadedGameState));
-            setModeMismatch('callbreak');
           }
         } catch (error) {
           console.error('Failed to load game:', error);
@@ -85,15 +81,6 @@ export default function CourtPiecePage() {
         }
         setIsLoading(false);
       } else {
-        const savedState = localStorage.getItem('callbreak-court-piece-gamestate');
-        if (savedState) {
-          try {
-            loadGameState(JSON.parse(savedState) as CPGameState);
-            localStorage.removeItem('callbreak-court-piece-gamestate');
-          } catch (error) {
-            console.error('Could not load Court Piece game state from local storage:', error);
-          }
-        }
         const newId = generateGameId();
         setGameId(newId);
         updateUrlWithGameId(newId);
@@ -163,14 +150,11 @@ export default function CourtPiecePage() {
     setIsLoading(true);
     try {
       const loadedGameState = await loadGameFromCloud(requestedGameId);
-      if (loadedGameState && !isCallbreakGameState(loadedGameState) && 'teamNames' in loadedGameState) {
+      if (loadedGameState && 'players' in loadedGameState) {
         loadGameState(loadedGameState as CPGameState);
         setGameId(requestedGameId);
         updateUrlWithGameId(requestedGameId);
         toast({ title: 'Game loaded', description: 'The shared Court Piece game is ready.' });
-      } else if (loadedGameState && isCallbreakGameState(loadedGameState)) {
-        localStorage.setItem('callbreak-gamestate', JSON.stringify(loadedGameState));
-        setModeMismatch('callbreak');
       } else {
         toast({ title: 'Game not found', description: 'No game found with that Kamra No.', variant: 'destructive' });
       }
@@ -182,23 +166,19 @@ export default function CourtPiecePage() {
     }
   };
 
-  const continueInCallbreak = () => {
-    setModeMismatch(null);
-    router.push('/?mode=callbreak');
-  };
-
   const handleClearAndSave = async () => {
-    const savedGames = JSON.parse(localStorage.getItem('callbreak-history') || '[]');
-    savedGames.unshift({
-      id: Date.now(),
-      timestamp: new Date(),
-      gameMode: 'courtpiece',
-      gameState,
-    });
-    localStorage.setItem('callbreak-history', JSON.stringify(savedGames.slice(0, 50)));
-
     if (gameId) await saveGameToCloud(gameId, gameState);
     actions.resetGame();
+  };
+
+  const deleteHistory = (password: string) => {
+    if (password !== 'tash') {
+      toast({ title: 'Incorrect password', variant: 'destructive' });
+      return false;
+    }
+    localStorage.removeItem('callbreak-history');
+    toast({ title: 'Saved games deleted' });
+    return true;
   };
 
   const handlePlayerNameChange = (index: number, newName: string) => {
@@ -253,25 +233,14 @@ export default function CourtPiecePage() {
             onShareGame={shareGame}
             onLoadGame={handleLoadGame}
             onSavedGames={() => router.push('/history')}
+            onDeleteHistory={deleteHistory}
             onClear={handleClearAndSave}
+            onUndo={actions.undo}
+            onRedo={actions.redo}
+            canUndo={actions.canUndo}
+            canRedo={actions.canRedo}
           />
         )}
-
-      {/* Player Setup Dialog */}
-      <AlertDialog open={modeMismatch === 'callbreak'} onOpenChange={(open) => !open && setModeMismatch(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Callbreak game detected</AlertDialogTitle>
-            <AlertDialogDescription>
-              This Kamra No. belongs to a Callbreak game. Switch to Callbreak mode to load it?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => localStorage.removeItem('callbreak-gamestate')}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={continueInCallbreak}>Switch to Callbreak</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Player Setup Dialog */}
       <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
@@ -338,9 +307,9 @@ export default function CourtPiecePage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={async () => {
+              onClick={() => {
                 setShowResetConfirm(false);
-                await handleClearAndSave();
+                // Reset game - would need to implement this in the hook
               }}
             >
               Start New Match

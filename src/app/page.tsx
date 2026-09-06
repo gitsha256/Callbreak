@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, Save, Circle, RotateCcw, PlusCircle, Undo, Redo, Upload, Clock, Check, Download } from 'lucide-react';
+import { MoreVertical, Save, Trash2, Circle, RotateCcw, PlusCircle, Undo, Redo, Upload, Clock, Share2, Copy, Check, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,7 +15,7 @@ import { GameModeSelector } from '@/components/game-mode-selector';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
-import { saveGameToCloud, loadGameFromCloud, generateGameId, getGameIdFromUrl, updateUrlWithGameId, isCallbreakGameState, isCourtPieceGameState } from '@/lib/cloud-storage';
+import { saveGameToCloud, loadGameFromCloud, generateGameId, getGameIdFromUrl, updateUrlWithGameId } from '@/lib/cloud-storage';
 import { useToast } from '@/hooks/use-toast';
 
 const getOrdinal = (n: number) => {
@@ -31,12 +31,12 @@ export default function Home() {
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [editingCell, setEditingCell] = useState<{ type: 'player' | 'score'; key: string } | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const [gameId, setGameId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [copiedGameId, setCopiedGameId] = useState(false);
   const [loadGameId, setLoadGameId] = useState('');
-  const [modeMismatch, setModeMismatch] = useState<'courtpiece' | null>(null);
 
   const gameState = history[historyIndex];
 
@@ -95,12 +95,6 @@ export default function Home() {
 
   useEffect(() => {
     setIsMounted(true);
-    const urlParams = new URLSearchParams(window.location.search);
-    const requestedMode = urlParams.get('mode');
-    if (localStorage.getItem('default-game-mode') === 'courtpiece' && requestedMode !== 'callbreak' && !getGameIdFromUrl()) {
-      router.replace('/court-piece');
-      return;
-    }
     const initializeGame = async () => {
       const urlGameId = getGameIdFromUrl();
 
@@ -110,12 +104,6 @@ export default function Home() {
         try {
           const loadedGameState = await loadGameFromCloud(urlGameId);
           if (loadedGameState) {
-            if (isCourtPieceGameState(loadedGameState)) {
-              localStorage.setItem('callbreak-court-piece-gamestate', JSON.stringify(loadedGameState));
-              setModeMismatch('courtpiece');
-              setIsLoading(false);
-              return;
-            }
             setGameId(urlGameId);
             const revivedGameState = {
               ...loadedGameState,
@@ -402,6 +390,16 @@ export default function Home() {
     setEditingCell(null);
   };
 
+  const deleteHistory = () => {
+    if (deletePassword === 'tash') {
+        localStorage.removeItem('callbreak-history');
+        setDeletePassword('');
+        return true; // Indicate success
+    }
+    alert('Incorrect password.');
+    return false; // Indicate failure
+  }
+  
   const handleAddRound = () => {
     updateGameState(prevState => {
         const newRound: RoundData = { bids: {}, tricks: {}, scores: {} };
@@ -436,15 +434,6 @@ export default function Home() {
     try {
       const loadedGameState = await loadGameFromCloud(loadGameId.trim());
       if (loadedGameState) {
-        if (isCourtPieceGameState(loadedGameState)) {
-          localStorage.setItem('callbreak-court-piece-gamestate', JSON.stringify(loadedGameState));
-          setModeMismatch('courtpiece');
-          setIsLoading(false);
-          return;
-        }
-        if (!isCallbreakGameState(loadedGameState)) {
-          throw new Error('Unsupported game data');
-        }
         setHistory([loadedGameState]);
         setHistoryIndex(0);
         setGameId(loadGameId.trim());
@@ -472,11 +461,6 @@ export default function Home() {
     setIsLoading(false);
   };
 
-  const continueInCourtPiece = () => {
-    setModeMismatch(null);
-    router.push('/court-piece');
-  };
-
   if (!isMounted || !gameState || isLoading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -502,14 +486,9 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
-      <div className="relative mb-6 flex w-full items-center justify-center px-1">
-        <h1 className="text-xl font-bold tracking-tight text-gradient-gold">
-          TASH PREMIER LEAGUE
-        </h1>
-        <div className="absolute right-1 top-1/2 -translate-y-1/2">
-          <ThemeToggle />
-        </div>
-      </div>
+      <h1 className="text-xl font-bold tracking-tight mb-6 text-gradient-gold">
+        TASH PREMIER LEAGUE
+      </h1>
 
       <Card className="w-full max-w-4xl shadow-2xl rounded-lg border border-primary/20 overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4 bg-gradient-to-r from-card to-card/80 border-b border-primary/10 sticky top-0 z-20">
@@ -531,11 +510,33 @@ export default function Home() {
               <DropdownMenuContent align="end">
                 <GameModeSelector currentMode="callbreak" />
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <ThemeToggle />
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleAddRound}><PlusCircle className="mr-2 h-4 w-4" /> Add Round</DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => {
+                  if (!gameId) {
+                    toast({ title: 'No game ID', description: 'Game ID not available yet.', variant: 'destructive' });
+                    return;
+                  }
+                  copyGameId();
+                }}>
+                  <Copy className="mr-2 h-4 w-4" /> Copy Kamra No.
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => {
+                  if (!gameId) {
+                    toast({ title: 'No game ID', description: 'Game ID not available yet.', variant: 'destructive' });
+                    return;
+                  }
+                  shareGame();
+                }}>
+                  <Share2 className="mr-2 h-4 w-4" /> Share Game
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => router.push('/history')}>
-                    <Clock className="mr-2 h-4 w-4" /> History
+                    <Clock className="mr-2 h-4 w-4" /> Saved Games
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <AlertDialog>
@@ -571,6 +572,43 @@ export default function Home() {
                     </AlertDialogContent>
                   </AlertDialog>
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                 <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}><Trash2 className="mr-2 h-4 w-4 text-destructive" /> Delete History</DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete all your saved games. This action cannot be undone. Please enter the password to proceed.
+                      </AlertDialogDescription>
+                       <div className="space-y-2 pt-2">
+                         <Label htmlFor="delete-password">Password</Label>
+                         <Input
+                           id="delete-password"
+                           type="password"
+                           value={deletePassword}
+                           onChange={(e) => setDeletePassword(e.target.value)}
+                           placeholder="Enter password..."
+                         />
+                       </div>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setDeletePassword('')}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={(e) => {
+                            if (!deleteHistory()) {
+                                e.preventDefault(); // Prevent dialog from closing on incorrect password
+                            }
+                        }}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -744,20 +782,6 @@ export default function Home() {
             </AlertDialog>
         </CardFooter>
       </Card>
-      <AlertDialog open={modeMismatch === 'courtpiece'} onOpenChange={(open) => !open && setModeMismatch(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Court Piece game detected</AlertDialogTitle>
-            <AlertDialogDescription>
-              This Kamra No. belongs to a Court Piece game. Switch to Court Piece mode to load it?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => localStorage.removeItem('callbreak-court-piece-gamestate')}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={continueInCourtPiece}>Switch to Court Piece</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </main>
   );
 }

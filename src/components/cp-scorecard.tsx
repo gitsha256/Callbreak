@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { CPRoundData, TeamId } from '@/lib/court-piece-types';
 import { GameModeSelector } from '@/components/game-mode-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Clock, Download, MoreVertical, RotateCcw } from 'lucide-react';
+import { Clock, Copy, Download, MoreVertical, Redo2, RotateCcw, Share2, Undo2 } from 'lucide-react';
 
 interface CPScorecardProps {
   rounds: CPRoundData[];
@@ -27,7 +27,12 @@ interface CPScorecardProps {
   onShareGame: () => void;
   onLoadGame: (gameId: string) => void;
   onSavedGames: () => void;
+  onDeleteHistory: (password: string) => boolean;
   onClear: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 const displayValue = (value: number | null) => value === null ? '' : value.toString();
@@ -46,12 +51,18 @@ export const CPScorecard: React.FC<CPScorecardProps> = ({
   onShareGame,
   onLoadGame,
   onSavedGames,
+  onDeleteHistory,
   onClear,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
 }) => {
   const [editingTeam, setEditingTeam] = useState<TeamId | null>(null);
   const [teamNameDraft, setTeamNameDraft] = useState('');
   const [cellDrafts, setCellDrafts] = useState<Record<string, string>>({});
   const [loadGameId, setLoadGameId] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
 
   const startTeamNameEdit = (team: TeamId) => {
     setEditingTeam(team);
@@ -75,58 +86,35 @@ export const CPScorecard: React.FC<CPScorecardProps> = ({
   const cellKey = (roundIndex: number, team: TeamId) => `${roundIndex}-${team}`;
   const commitCell = (roundIndex: number, team: TeamId, fallbackValue: number | null) => {
     const key = cellKey(roundIndex, team);
-    const opposingTeam = team === 'A' ? 'B' : 'A';
     const rawValue = cellDrafts[key] ?? displayValue(fallbackValue);
     if (rawValue !== '' && rawValue !== '-' && !/^-?\d+$/.test(rawValue)) return;
     onUpdateRoundEntry(roundIndex, team, rawValue === '' || rawValue === '-' ? null : Number(rawValue));
-    setCellDrafts(previous => ({
-      ...previous,
-      [key]: rawValue,
-      [cellKey(roundIndex, opposingTeam)]: '0',
-    }));
+    setCellDrafts(previous => ({ ...previous, [key]: rawValue }));
   };
 
-  const pointsToWin = 52;
-  const pointDifference = Math.abs(teamATotal - teamBTotal);
-  const needsForTeam = (team: TeamId) => {
-    const teamTotal = team === 'A' ? teamATotal : teamBTotal;
-    const opponentTotal = team === 'A' ? teamBTotal : teamATotal;
-    const needsRace = Math.max(0, pointsToWin - teamTotal);
-    const needsDifference = teamTotal > opponentTotal
-      ? Math.max(0, pointsToWin - pointDifference)
-      : pointsToWin + pointDifference;
-    return {
-      needsRace,
-      needsDifference,
-      fastest: Math.min(needsRace, needsDifference),
-      isLeading: teamTotal > opponentTotal,
-    };
-  };
-  const teamANeeds = needsForTeam('A');
-  const teamBNeeds = needsForTeam('B');
-  const fastestTeam = teamANeeds.fastest <= teamBNeeds.fastest ? 'A' : 'B';
-  const hasScoredRow = rounds.some(round => round.teamAScore !== null || round.teamBScore !== null);
+  const piche = teamATotal === teamBTotal ? 'Tie' : `${teamATotal < teamBTotal ? teamNames.A : teamNames.B} is piche: ${Math.abs(teamATotal - teamBTotal)}`;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start bg-background p-1 sm:p-2 md:p-4">
-      <div className="relative mb-4 flex w-full items-center justify-center px-1 sm:mb-6">
-        <h1 className="text-xl font-bold tracking-tight text-gradient-gold">TASH PREMIER LEAGUE</h1>
-        <div className="absolute right-1 top-1/2 -translate-y-1/2">
-          <ThemeToggle />
-        </div>
-      </div>
+      <h1 className="mb-4 text-xl font-bold tracking-tight text-gradient-gold sm:mb-6">TASH PREMIER LEAGUE</h1>
       <Card className="w-full max-w-4xl overflow-hidden rounded-lg border border-primary/20 shadow-2xl">
         <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-primary/10 bg-gradient-to-r from-card to-card/80 p-2 sm:p-4">
-          <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 items-center gap-1">
             {gameId && <div className="flex items-center gap-2 text-xs sm:text-sm"><span className="font-semibold">Kamra No:</span><span className="truncate font-mono tracking-wider">{gameId}</span></div>}
+            <Button variant="ghost" size="icon" onClick={onUndo} disabled={!canUndo} aria-label="Undo" className="h-8 w-8"><Undo2 className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={onRedo} disabled={!canRedo} aria-label="Redo" className="h-8 w-8"><Redo2 className="h-4 w-4" /></Button>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Open menu"><MoreVertical /></Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <GameModeSelector currentMode="courtpiece" />
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild><ThemeToggle /></DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={onSavedGames}><Clock className="mr-2 h-4 w-4" />History</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onCopyGameId}><Copy className="mr-2 h-4 w-4" />{copiedGameId ? 'Copied!' : 'Copy Kamra No.'}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onShareGame}><Share2 className="mr-2 h-4 w-4" />Share Game</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onSavedGames}><Clock className="mr-2 h-4 w-4" />Saved Games</DropdownMenuItem>
               <DropdownMenuItem onSelect={event => event.preventDefault()}>
                 <AlertDialog>
                   <AlertDialogTrigger asChild><div className="flex w-full items-center"><Download className="mr-2 h-4 w-4" />Load Game</div></AlertDialogTrigger>
@@ -136,6 +124,16 @@ export const CPScorecard: React.FC<CPScorecardProps> = ({
                   </AlertDialogContent>
                 </AlertDialog>
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem onSelect={event => event.preventDefault()} className="text-destructive"><RotateCcw className="mr-2 h-4 w-4" />Delete History</DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete saved games. Enter the password to proceed.</AlertDialogDescription><div className="space-y-2 pt-2"><Label htmlFor="cp-delete-password">Password</Label><Input id="cp-delete-password" type="password" value={deletePassword} onChange={event => setDeletePassword(event.target.value)} /></div></AlertDialogHeader>
+                  <AlertDialogFooter><AlertDialogCancel onClick={() => setDeletePassword('')}>Cancel</AlertDialogCancel><AlertDialogAction onClick={event => { if (!onDeleteHistory(deletePassword)) event.preventDefault(); else setDeletePassword(''); }} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
@@ -146,29 +144,7 @@ export const CPScorecard: React.FC<CPScorecardProps> = ({
               <TableBody>{rounds.map((round, roundIndex) => { const teamAKey = cellKey(roundIndex, 'A'); const teamBKey = cellKey(roundIndex, 'B'); const teamAClass = round.teamAScore !== null ? round.teamAScore < 0 ? 'bg-red-500/25' : 'bg-green-500/25' : ''; const teamBClass = round.teamBScore !== null ? round.teamBScore < 0 ? 'bg-red-500/25' : 'bg-green-500/25' : ''; return <TableRow key={`${round.roundNumber}-${roundIndex}`} className="hover:bg-primary/5"><TableCell className="border-r p-1 text-center text-xs font-semibold sm:text-sm">{round.roundNumber}</TableCell><TableCell className={`border-r p-0 ${teamAClass}`}><Input aria-label={`${teamNames.A} round ${round.roundNumber}`} type="text" inputMode="numeric" value={cellDrafts[teamAKey] ?? displayValue(round.teamAScore)} onChange={event => { if (/^-?\d*$/.test(event.target.value)) setCellDrafts(previous => ({ ...previous, [teamAKey]: event.target.value })); }} onBlur={() => commitCell(roundIndex, 'A', round.teamAScore)} onKeyDown={event => event.key === 'Enter' && commitCell(roundIndex, 'A', round.teamAScore)} className="h-9 w-full min-w-0 rounded-none border-0 bg-transparent px-1 text-center text-sm font-bold focus-visible:ring-1" /></TableCell><TableCell className={`p-0 ${teamBClass}`}><Input aria-label={`${teamNames.B} round ${round.roundNumber}`} type="text" inputMode="numeric" value={cellDrafts[teamBKey] ?? displayValue(round.teamBScore)} onChange={event => { if (/^-?\d*$/.test(event.target.value)) setCellDrafts(previous => ({ ...previous, [teamBKey]: event.target.value })); }} onBlur={() => commitCell(roundIndex, 'B', round.teamBScore)} onKeyDown={event => event.key === 'Enter' && commitCell(roundIndex, 'B', round.teamBScore)} className="h-9 w-full min-w-0 rounded-none border-0 bg-transparent px-1 text-center text-sm font-bold focus-visible:ring-1" /></TableCell></TableRow>; })}</TableBody>
               <tfoot className="border-t-2 border-primary"><TableRow><TableCell className="border-r p-1 text-center text-[10px] font-bold sm:text-xs">Total</TableCell><TableCell className="border-r bg-blue-500/10 p-1 text-center text-base font-bold text-blue-600 sm:text-lg">{teamATotal}</TableCell><TableCell className="bg-red-500/10 p-1 text-center text-base font-bold text-red-600 sm:text-lg">{teamBTotal}</TableCell></TableRow></tfoot>
             </Table>
-            {hasScoredRow && <div className="space-y-3 border-t-2 border-primary bg-gradient-to-r from-red-500/10 to-orange-500/10 p-3">
-              <div className="text-center text-sm font-bold text-muted-foreground">POINT DIFFERENCE: {pointDifference}</div>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                {(['A', 'B'] as TeamId[]).map(team => {
-                  const needs = team === 'A' ? teamANeeds : teamBNeeds;
-                  const total = team === 'A' ? teamATotal : teamBTotal;
-                  const teamName = team === 'A' ? teamNames.A : teamNames.B;
-                  const isFastest = team === fastestTeam;
-                  return (
-                    <div key={team} className={`rounded-md border p-3 ${isFastest ? 'border-green-500 bg-green-500/10' : 'bg-background/50'}`}>
-                      <div className="flex items-center justify-between font-bold"><span>{teamName}</span><span>{total >= 0 ? '+' : ''}{total}</span></div>
-                      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                        <div>52 k liye Chahiye= {needs.needsRace}</div>
-                        {needs.isLeading && <div>By Difference= {needs.needsDifference}</div>}
-                      </div>
-                      <div className={`mt-2 text-sm font-bold ${isFastest ? 'text-green-600' : 'text-foreground'}`}>
-                        To Win {needs.fastest}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>}
+            <div className="flex items-center justify-center border-t-2 border-primary bg-gradient-to-r from-red-500/10 to-orange-500/10 p-3"><span className="text-base font-bold text-red-600 sm:text-lg">{piche}</span></div>
           </div>
         </CardContent>
         <CardFooter className="flex flex-wrap items-center justify-end gap-2 border-t border-primary/10 bg-gradient-to-r from-muted/50 to-muted/30 p-2">
